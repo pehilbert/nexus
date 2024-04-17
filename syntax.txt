@@ -2,7 +2,7 @@
 <statement_list> ::= <statement> | <statement> <statement_list>
 <statement> ::= <declaration> | <exit_statement>
 <declaration> ::= <type> <identifier> = <expression>;
-<exit_statement> ::= exit(<expression>);
+<exit_statement> ::= exit <expression>;
 
 <expression> ::= <term>
 <term> ::= <int_literal>

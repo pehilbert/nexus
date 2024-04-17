@@ -1,2 +1,2 @@
-javac -d ./bin ./src/Nexus.java
+javac -d ./bin ./src/*.java
 java -cp ./bin Nexus $args
