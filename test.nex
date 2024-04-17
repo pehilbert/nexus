@@ -1,0 +1,2 @@
+int testNum = 0;
+exit testNum;
