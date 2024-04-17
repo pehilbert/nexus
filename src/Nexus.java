@@ -4,7 +4,7 @@ public class Nexus
     {
         if (args.length != 2)
         {
-            System.out.println("Usage: nexus <input filename> <target filename>");
+            System.out.println("Usage: nexc <input filename> <target filename>");
             System.exit(1);
         }
 
