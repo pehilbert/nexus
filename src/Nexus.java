@@ -34,11 +34,11 @@ public class Nexus
             try
             {
                 tokenizer.tokenize();
-                tokenizer.printTokenList();
+                //tokenizer.printTokenList();
 
                 parser = new Parser(tokenizer.getTokens());   
                 parser.parseProgram();
-                parser.printStatements();
+                //parser.printStatements();
 
                 codeGenerator = new CodeGen(parser);
                 codeGenerator.compile(args[1]);

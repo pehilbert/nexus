@@ -1,3 +1,5 @@
 *.class
 *.asm
+*.o
+*.exe
 /bin/

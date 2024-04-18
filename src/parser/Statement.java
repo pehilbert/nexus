@@ -27,7 +27,20 @@ class IntDeclaration implements Statement
 
     public String getAssembly()
     {
-        return "";
+        String assembly = "";
+        
+        try
+        {
+            assembly += identifierToken.getValue() + ":\n";
+            assembly += "\tmov eax, " + expression.evaluate() + "\n";
+            assembly += "\tpush eax\n";
+        }
+        catch (ParseException exception)
+        {
+            exception.printStackTrace();
+        }
+
+        return assembly;
     }
 
     public Token getIdentifier()
@@ -58,7 +71,20 @@ class ExitStatement implements Statement
 
     public String getAssembly()
     {
-        return "";
+        String assembly = "";
+
+        try
+        {
+            assembly += "\tmov eax, 1\n";
+            assembly += "\tmov ebx, " + expression.evaluate() + "\n";
+            assembly += "\tint 0x80\n";
+        }
+        catch (ParseException exception)
+        {
+            exception.printStackTrace();
+        }
+
+        return assembly;
     }
 
     public IntExpression getExpression()

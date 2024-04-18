@@ -58,10 +58,10 @@ public class Parser
         {
             switch( peek().getType() )
             {
-                case TokenType.TYPE_INT:
+                case TYPE_INT:
                 return parseIntDeclaration();
                 
-                case TokenType.EXIT:
+                case EXIT:
                 return parseExitStatement();
 
                 default:
