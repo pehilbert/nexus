@@ -29,15 +29,3 @@ public class Token
         return pos;
     }
 }
-
-enum TokenType 
-{
-    TYPE_INT, 
-    LITERAL_INT,
-
-    IDENTIFIER, 
-    EXIT,
-
-    EQUALS,
-    SEMICOLON,
-}

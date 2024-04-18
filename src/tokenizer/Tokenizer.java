@@ -76,6 +76,11 @@ public class Tokenizer {
             System.out.println(token.getType() + ", " + token.getValue() + ", " + token.getPos());
         }
     }
+    
+    public List<Token> getTokens()
+    {
+        return tokenList;
+    }
 
     private String peek()
     {
