@@ -31,9 +31,7 @@ class IntDeclaration implements Statement
         
         try
         {
-            assembly += identifierToken.getValue() + ":\n";
-            assembly += "\tmov eax, " + expression.evaluate() + "\n";
-            assembly += "\tpush eax\n";
+            assembly += expression.evaluate("ebx");
         }
         catch (ParseException exception)
         {
@@ -76,7 +74,7 @@ class ExitStatement implements Statement
         try
         {
             assembly += "\tmov eax, 1\n";
-            assembly += "\tmov ebx, " + expression.evaluate() + "\n";
+            assembly += expression.evaluate("ebx");
             assembly += "\tint 0x80\n";
         }
         catch (ParseException exception)

@@ -1,7 +1,7 @@
 <program> ::= <statement_list>
 <statement_list> ::= <statement> | <statement> <statement_list>
 <statement> ::= <declaration> | <exit_statement>
-<declaration> ::= <type> <identifier> = <expression>;
+<type_declaration> ::= <type> <identifier> = <type_expression>;
 <exit_statement> ::= exit <expression>;
 
 <int_expression> ::= <int_term>

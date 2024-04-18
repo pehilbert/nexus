@@ -1,0 +1,4 @@
+IntExpression -> evaluate, ultimately store result in a provided register
+
+IntDeclaration -> evaluate IntExpression, store in ebx
+                          
