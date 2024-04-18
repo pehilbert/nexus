@@ -47,6 +47,11 @@ public class Parser
         }
      }
 
+     public List<Statement> getProgram()
+     {
+        return program;
+     }
+
      private Statement parseStatement() throws ParseException
      {
         if (peek() != null)
@@ -191,60 +196,6 @@ public class Parser
      }
 }
 
-interface Statement 
-{
-    public void printStatement();
-}
-
-class IntDeclaration implements Statement 
-{
-    private Token identifierToken;
-    private IntExpression expression;
-
-    public IntDeclaration(Token identifier, IntExpression expr)
-    {
-        identifierToken = identifier;
-        expression = expr;
-    }
-
-    public void printStatement()
-    {
-        System.out.println("Int declaration: " + identifierToken.getValue() + 
-                            ", " + expression.getTerm().getToken().getValue());
-    }
-
-    public Token getIdentifier()
-    {
-        return identifierToken;
-    }
-
-    public IntExpression getExpression()
-    {
-        return expression;
-    }
-}
-
-class ExitStatement implements Statement 
-{
-    IntExpression expression;
-
-    public ExitStatement(IntExpression expr)
-    {
-        expression = expr;
-    }
-
-    public void printStatement()
-    {
-        System.out.println("Exit statement: " + 
-                            expression.getTerm().getToken().getValue());
-    }
-
-    public IntExpression getExpression()
-    {
-        return expression;
-    }
-}
-
 class IntExpression
 {
     private IntTerm term;
@@ -252,6 +203,21 @@ class IntExpression
     public IntExpression(IntTerm inTerm)
     {
         term = inTerm;
+    }
+
+    public String evaluate() throws ParseException
+    {
+        switch (term.getToken().getType())
+        {
+            case LITERAL_INT:
+            return term.getToken().getValue();
+
+            case IDENTIFIER:
+            return "0";
+
+            default:
+            throw new ParseException("Expected an int value, instead got " + term.getToken().getValue());
+        }
     }
 
     public IntTerm getTerm()

@@ -6,6 +6,8 @@ import tokenizer.Tokenizer;
 
 import parser.Parser;
 
+import codegen.CodeGen;
+
 import java.io.IOException;
 
 public class Nexus
@@ -20,6 +22,7 @@ public class Nexus
 
         Tokenizer tokenizer;
         Parser parser;
+        CodeGen codeGenerator;
 
         try 
         {
@@ -36,6 +39,9 @@ public class Nexus
                 parser = new Parser(tokenizer.getTokens());   
                 parser.parseProgram();
                 parser.printStatements();
+
+                codeGenerator = new CodeGen(parser);
+                codeGenerator.compile(args[1]);
             }
             catch (TokenException exception)
             {
