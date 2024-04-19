@@ -23,64 +23,49 @@ public class Compiler {
         String sourceFile = executableFile + ".asm";
         String objectFile = executableFile + ".o";
 
-        try (FileWriter writer = new FileWriter(sourceFile)) 
+        AssemblyGenerator generator = new AssemblyGenerator(parser);
+
+        if (generator.generateProgram(sourceFile))
         {
-            AssemblyGenerator generator = new AssemblyGenerator();
-            List<Statement> program = parser.getProgram();
-            writer.write( generator.generatePreamble() );
+            System.out.println("Successfully wrote assembly code.");
 
-            // write assembly code
-            int i = 0;
+            // Use ProcessBuilder to run NASM and ld
+            ProcessBuilder assembler = new ProcessBuilder("nasm", "-f", "elf32", sourceFile, "-o", objectFile);
+            ProcessBuilder linker = new ProcessBuilder("ld", "-m", "elf_i386", "-o", executableFile, objectFile);
 
-            while (i < program.size())
+            try 
             {
-                writer.write( program.get(i).accept(generator) );
-                i++;
-            }
-        } 
-        catch (IOException e) 
-        {
-            e.printStackTrace();
-        }
-
-        System.out.println("Successfully wrote assembly code.");
-
-        // Use ProcessBuilder to run NASM and ld
-        ProcessBuilder assembler = new ProcessBuilder("nasm", "-f", "elf32", sourceFile, "-o", objectFile);
-        ProcessBuilder linker = new ProcessBuilder("ld", "-m", "elf_i386", "-o", executableFile, objectFile);
-
-        try 
-        {
-            // Start and execute the assembler process
-            System.out.println("Assembling the file...");
-            Process asmProcess = assembler.start();
-            if (asmProcess.waitFor() == 0) 
-            {
-                System.out.println("Assembly successful. Linking...");
-                
-                // Start and execute the linker process
-                Process linkProcess = linker.start();
-                if (linkProcess.waitFor() == 0) 
+                // Start and execute the assembler process
+                System.out.println("Assembling the file...");
+                Process asmProcess = assembler.start();
+                if (asmProcess.waitFor() == 0) 
                 {
-                    System.out.println("Linking successful.");
-                    System.out.println("Executable created: " + executableFile);
+                    System.out.println("Assembly successful. Linking...");
+                    
+                    // Start and execute the linker process
+                    Process linkProcess = linker.start();
+                    if (linkProcess.waitFor() == 0) 
+                    {
+                        System.out.println("Linking successful.");
+                        System.out.println("Executable created: " + executableFile);
+                    } 
+                    else 
+                    {
+                        // Output error stream if linking fails
+                        printProcessErrors(linkProcess);
+                    }
                 } 
                 else 
                 {
-                    // Output error stream if linking fails
-                    printProcessErrors(linkProcess);
+                    // Output error stream if assembly fails
+                    printProcessErrors(asmProcess);
                 }
             } 
-            else 
+            catch (IOException | InterruptedException e) 
             {
-                // Output error stream if assembly fails
-                printProcessErrors(asmProcess);
+                e.printStackTrace();
+                Thread.currentThread().interrupt(); // Restore the interrupted status
             }
-        } 
-        catch (IOException | InterruptedException e) 
-        {
-            e.printStackTrace();
-            Thread.currentThread().interrupt(); // Restore the interrupted status
         }
     }
 
