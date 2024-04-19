@@ -14,10 +14,12 @@ import tokenizer.Token;
 
 public class AssemblyGenerator implements StatementVisitor {
     private Parser parser;
+    private OffsetTable identifiers;
 
     public AssemblyGenerator(Parser inParser)
     {
         parser = inParser;
+        identifiers = new OffsetTable(4);
     }
 
     public boolean generateProgram(String outputFile)
@@ -36,6 +38,8 @@ public class AssemblyGenerator implements StatementVisitor {
                 i++;
             }
 
+            System.out.println(identifiers.toString());
+
             return true;
         } 
         catch (IOException e) 
@@ -48,9 +52,21 @@ public class AssemblyGenerator implements StatementVisitor {
 
     public String visit(IntDeclaration stmt) {
         String a = "";
-
         a += intExpressionAssembly( stmt.getExpression(), "ebx" );
-        a += "\tpush ebx\n";
+
+        if ( identifiers.addIdentifier(stmt.getIdentifier().getValue() ) )
+        {
+            a += "\tpush ebx\n";
+        }
+        else
+        {
+            Integer offset = identifiers.getOffset(stmt.getIdentifier().getValue());
+
+            if (offset != 1)
+            {
+                a += "\tmov [esp + " + offset.toString() + "], ebx\n";
+            }
+        }
 
         return a;
     }
@@ -81,7 +97,12 @@ public class AssemblyGenerator implements StatementVisitor {
             break;
 
             case IDENTIFIER:
-            a += "\tmov " + register + ", 0\n";
+            Integer offset = identifiers.getOffset(termToken.getValue());
+
+            if (offset != -1)
+            {
+                a += "\tmov " + register + ", [esp + " + offset.toString() + "]\n";
+            }
             break;
 
             default:
