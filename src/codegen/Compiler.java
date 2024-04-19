@@ -1,14 +1,10 @@
 package codegen;
 
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-import java.util.List;
-
 import parser.Parser;
-import parser.Statement;
 
 public class Compiler {
     private Parser parser;
