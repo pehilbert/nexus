@@ -5,7 +5,6 @@ import tokenizer.Token;
 public interface Statement 
 {
     public void printStatement();
-    public String getAssembly();
 }
 
 class IntDeclaration implements Statement 
@@ -23,22 +22,6 @@ class IntDeclaration implements Statement
     {
         System.out.println("Int declaration: " + identifierToken.getValue() + 
                             ", " + expression.getTerm().getToken().getValue());
-    }
-
-    public String getAssembly()
-    {
-        String assembly = "";
-        
-        try
-        {
-            assembly += expression.evaluate("ebx");
-        }
-        catch (ParseException exception)
-        {
-            exception.printStackTrace();
-        }
-
-        return assembly;
     }
 
     public Token getIdentifier()
@@ -65,24 +48,6 @@ class ExitStatement implements Statement
     {
         System.out.println("Exit statement: " + 
                             expression.getTerm().getToken().getValue());
-    }
-
-    public String getAssembly()
-    {
-        String assembly = "";
-
-        try
-        {
-            assembly += "\tmov eax, 1\n";
-            assembly += expression.evaluate("ebx");
-            assembly += "\tint 0x80\n";
-        }
-        catch (ParseException exception)
-        {
-            exception.printStackTrace();
-        }
-
-        return assembly;
     }
 
     public IntExpression getExpression()

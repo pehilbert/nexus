@@ -1,4 +1,9 @@
 IntExpression -> evaluate, ultimately store result in a provided register
+                 int literal -> move the number into the provided register
+                 identifier -> 
 
-IntDeclaration -> evaluate IntExpression, store in ebx
-                          
+IntDeclaration -> 
+
+ExitStatement -> put 1 into eax
+                 evaluate IntExpression, store in ebx
+                 exit with value in ebx

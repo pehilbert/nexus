@@ -15,10 +15,10 @@ public class CodeGen {
         parser = inParser;
     }
 
-    public void compile(String outputFilename)
+    public void compile(String executableFile)
     {
-        String sourceFile = outputFilename + ".asm";
-        String objectFile = outputFilename + ".o";
+        String sourceFile = executableFile + ".asm";
+        String objectFile = executableFile + ".o";
 
         try (FileWriter writer = new FileWriter(sourceFile)) 
         {
@@ -32,7 +32,7 @@ public class CodeGen {
 
             while (i < parser.getProgram().size())
             {
-                writer.write( parser.getProgram().get(i).getAssembly() );
+                writer.write( "" );
                 i++;
             }
         } 
@@ -45,7 +45,7 @@ public class CodeGen {
 
         // Use ProcessBuilder to run NASM and ld
         ProcessBuilder assembler = new ProcessBuilder("nasm", "-f", "elf32", sourceFile, "-o", objectFile);
-        ProcessBuilder linker = new ProcessBuilder("ld", "-m", "elf_i386", "-o", outputFilename, objectFile);
+        ProcessBuilder linker = new ProcessBuilder("ld", "-m", "elf_i386", "-o", executableFile, objectFile);
 
         try 
         {
@@ -61,7 +61,7 @@ public class CodeGen {
                 if (linkProcess.waitFor() == 0) 
                 {
                     System.out.println("Linking successful.");
-                    System.out.println("Executable created: " + outputFilename);
+                    System.out.println("Executable created: " + executableFile);
                 } 
                 else 
                 {
