@@ -5,12 +5,15 @@ import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
+import java.util.List;
+
 import parser.Parser;
+import parser.Statement;
 
-public class CodeGen {
-    Parser parser;
+public class Compiler {
+    private Parser parser;
 
-    public CodeGen(Parser inParser)
+    public Compiler(Parser inParser)
     {
         parser = inParser;
     }
@@ -22,17 +25,16 @@ public class CodeGen {
 
         try (FileWriter writer = new FileWriter(sourceFile)) 
         {
-            // write pre-code stuff
-            writer.write("section .text\n");
-            writer.write("global _start\n\n");
-            writer.write("_start:\n");
+            AssemblyGenerator generator = new AssemblyGenerator();
+            List<Statement> program = parser.getProgram();
+            writer.write( generator.generatePreamble() );
 
             // write assembly code
             int i = 0;
 
-            while (i < parser.getProgram().size())
+            while (i < program.size())
             {
-                writer.write( "" );
+                writer.write( program.get(i).accept(generator) );
                 i++;
             }
         } 
