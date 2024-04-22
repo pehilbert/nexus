@@ -5,6 +5,7 @@
 <exit_statement> ::= exit <expression>;
 
 <int_expression> ::= <int_term>
+<int_bin_expression> ::= <int_term> [+-*/] <int_term> | <int_bin_expression>
 <int_term> ::= <int_literal> | <identifier>
 <int_literal> ::= [0-9]+
 <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*

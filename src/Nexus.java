@@ -14,11 +14,43 @@ public class Nexus
 {
     public static void main( String[] args )
     {
-        if (args.length != 2)
+        String inFilename;
+        String outFilename;
+        boolean verbose = false;
+
+        if (args.length < 2)
         {
-            System.out.println("Usage: nexc <input filename> <target filename>");
+            System.out.println("Usage: nexc <options> <input filename> <target filename>");
             System.exit(1);
         }
+
+        if (args.length == 2)
+        {
+            inFilename = args[0];
+            outFilename = args[1];
+        }
+
+        int i = 0;
+
+        while (args[i].charAt(0) == '-')
+        {
+            switch (args[i].charAt(1))
+            {
+                case 'v': verbose = true;
+                default: break;
+            }
+
+            i++;
+        }
+
+        if (i + 1 >= args.length)
+        {
+            System.out.println("Usage: nexc <options> <input filename> <target filename>");
+            System.exit(1);
+        }
+
+        inFilename = args[i];
+        outFilename = args[i + 1];
 
         Tokenizer tokenizer;
         Parser parser;
@@ -26,7 +58,7 @@ public class Nexus
 
         try 
         {
-            byte[] bytes = Files.readAllBytes(Paths.get(args[0]));
+            byte[] bytes = Files.readAllBytes(Paths.get(inFilename));
             String content = new String(bytes);
             
             tokenizer = new Tokenizer(content);
@@ -34,14 +66,24 @@ public class Nexus
             try
             {
                 tokenizer.tokenize();
-                //tokenizer.printTokenList();
+
+                if (verbose)
+                {
+                    System.out.println("Tokens in program: ");
+                    tokenizer.printTokenList();
+                }
 
                 parser = new Parser(tokenizer.getTokens());   
                 parser.parseProgram();
-                //parser.printStatements();
+
+                if (verbose)
+                {
+                    System.out.println("Statements in program: ");
+                    parser.printStatements();
+                }
 
                 codeGenerator = new Compiler(parser);
-                codeGenerator.compile(args[1]);
+                codeGenerator.compile(outFilename);
             }
             catch (TokenException exception)
             {
