@@ -1,9 +1,9 @@
-# Single line comment
+#[ 
+    Multi line comment
+]#
 int test = (8 + 4) / (2 * 1 + 2);# inline comment
 int a = test * 9; # another inline comment
 
-#[
-Multiline comment
-]#
+# single line comment
 
 exit a + 1;

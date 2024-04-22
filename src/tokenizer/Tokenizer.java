@@ -22,6 +22,7 @@ public class Tokenizer {
     static final String OPEN_BRACKET = "[";
     static final String CLOSE_BRACKET = "]";
     static final String SEMICOLON = ";";
+    static final String ENDLINE = "\n";
     static final String EXIT = "exit";
     static final String TYPE_INT = "int";
 
@@ -39,84 +40,96 @@ public class Tokenizer {
         
         while (peek() != NULL_STR)
         {
-            if (isStringWhitespace( peek() ) || peek() == HASHTAG)
+            switch (peek())
             {
+                // single-character tokens that would end any current token
+                case PLUS:
+                case MINUS:
+                case TIMES:
+                case DIVISION:
+                case EQUALS:
+                case OPEN_PAREN:
+                case CLOSE_PAREN:
+                case SEMICOLON:
+                // if something was already read, tokenize it
                 if (buffer.length() > 0)
                 {
-                    tokenList.add( getTokenFromString(buffer) );
+                    tokenList.add(getTokenFromString(buffer));
                     buffer = "";
                 }
-                
-                if (consume() == HASHTAG)
+
+                // also tokenize the current single-character token
+                tokenList.add(getTokenFromString(consume()));
+                break;
+
+                // handle comments
+                case HASHTAG:
+                // if something was already read, tokenize it
+                if (buffer.length() > 0)
                 {
-                    if (consume() == OPEN_BRACKET)
+                    tokenList.add(getTokenFromString(buffer));
+                    buffer = "";
+                }
+
+                consume();
+
+                System.out.println("Character after hashtag: " + peek());
+
+                // handle multi-line comment
+                if (peek() == OPEN_BRACKET)
+                {
+                    System.out.println("Multiline comment");
+                    consume();
+                    boolean endComment = false;
+
+                    while (!endComment && peek() != NULL_STR)
                     {
-                        boolean commentClosed = false;
-
-                        while (!commentClosed)
+                        if (consume() == CLOSE_BRACKET && consume() == HASHTAG)
                         {
-                            String next = consume();
-
-                            if (next == NULL_STR)
-                            {
-                                throw new TokenException("Expected ']#' to close comment");
-                            }
-
-                            if (next == CLOSE_BRACKET && peek() == HASHTAG)
-                            {
-                                consume();
-                                commentClosed = true;
-                            }
+                            endComment = true;
                         }
                     }
-                }
-            }
-            else if (buffer.length() > 0)
-            {
-                switch( peek() )
-                {
-                    case PLUS:
-                    case MINUS:
-                    case TIMES:
-                    case DIVISION:
-                    case OPEN_PAREN:
-                    case CLOSE_PAREN:
-                    case EQUALS:
-                    case SEMICOLON:
-                    tokenList.add( getTokenFromString(buffer) );
-                    tokenList.add( getTokenFromString( consume() ) );
-                    buffer = "";
 
-                    case HASHTAG:
-                    break;
-
-                    default:
-                    switch (buffer)
+                    if (!endComment)
                     {
-                        case PLUS:
-                        case MINUS:
-                        case TIMES:
-                        case DIVISION:
-                        case OPEN_PAREN:
-                        case CLOSE_PAREN:
-                        case EQUALS:
-                        case SEMICOLON:
-                        tokenList.add( getTokenFromString(buffer) );
-                        buffer = "";
-                        break;
-
-                        case HASHTAG:
-                        break;
-
-                        default:
-                        buffer += consume();
+                        throw new TokenException("Could not find the end of the multiline comment");
                     }
                 }
-            }
-            else
-            {
-                buffer += consume();
-            }
+                // handle single-line comment
+                else
+                {
+                    System.out.println("Single line comment");
+                    while (peek() != NULL_STR && consume() != ENDLINE)
+                    {
+                        
+                    }
+                }
+
+                break;
+
+                // handle everything else
+                default:
+
+                // handle whitespace
+                if (isStringWhitespace(peek()))
+                {
+                    // if something was already read, tokenize it
+                    if (buffer.length() > 0)
+                    {
+                        tokenList.add(getTokenFromString(buffer));
+                        buffer = "";
+                    }
+                    
+                    // consume current whitespace character
+                    consume();
+                }
+                // handle non-whitespace
+                else 
+                {
+                    // just keep reading
+                    buffer += consume();
+                }
+            }   
         }
     }
 
