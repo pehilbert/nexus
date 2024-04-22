@@ -8,6 +8,10 @@ public enum TokenType
     IDENTIFIER, 
     EXIT,
 
+    PLUS,
+    MINUS,
+    TIMES,
+    DIVISION,
     EQUALS,
     SEMICOLON,
 }

@@ -11,6 +11,10 @@ public class Tokenizer {
     static final String NULL_STR = "\0";
     static final char UNDERSCORE = '_';
 
+    static final String PLUS = "+";
+    static final String MINUS = "-";
+    static final String TIMES = "*";
+    static final String DIVISION = "/";
     static final String EQUALS = "=";
     static final String SEMICOLON = ";";
     static final String EXIT = "exit";
@@ -30,7 +34,6 @@ public class Tokenizer {
         
         while (peek() != NULL_STR)
         {
-
             if (isStringWhitespace( peek() ))
             {
                 if (buffer.length() > 0)
@@ -45,20 +48,33 @@ public class Tokenizer {
             {
                 switch( peek() )
                 {
+                    case PLUS:
+                    case MINUS:
+                    case TIMES:
+                    case DIVISION:
                     case EQUALS:
-                    tokenList.add( getTokenFromString(buffer) );
-                    tokenList.add( getTokenFromString(consume()) );
-                    buffer = "";
-                    break;
-
                     case SEMICOLON:
                     tokenList.add( getTokenFromString(buffer) );
-                    tokenList.add( getTokenFromString(consume()) );
+                    tokenList.add( getTokenFromString( consume() ) );
                     buffer = "";
                     break;
 
                     default:
-                    buffer += consume();
+                    switch (buffer)
+                    {
+                        case PLUS:
+                        case MINUS:
+                        case TIMES:
+                        case DIVISION:
+                        case EQUALS:
+                        case SEMICOLON:
+                        tokenList.add( getTokenFromString(buffer) );
+                        buffer = "";
+                        break;
+
+                        default:
+                        buffer += consume();
+                    }
                 }
             }
             else
@@ -108,6 +124,18 @@ public class Tokenizer {
     {
         switch (test)
         {
+            case PLUS:
+            return new Token(TokenType.PLUS, test, strPos - test.length() + 1);
+
+            case MINUS:
+            return new Token(TokenType.MINUS, test, strPos - test.length() + 1);
+
+            case TIMES:
+            return new Token(TokenType.TIMES, test, strPos - test.length() + 1);
+
+            case DIVISION:
+            return new Token(TokenType.DIVISION, test, strPos - test.length() + 1);
+
             case EQUALS:
             return new Token(TokenType.EQUALS, test, strPos - test.length() + 1);
 
@@ -131,7 +159,7 @@ public class Tokenizer {
                 return new Token(TokenType.LITERAL_INT, test, strPos - test.length() + 1);
             }
 
-            throw new TokenException("You messed up!");
+            throw new TokenException("'" + test + "' is not a valid token.");
         }
     }
 
