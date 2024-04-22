@@ -130,6 +130,8 @@ public class AssemblyGenerator implements StatementVisitor {
                 a += intTermAssembly(term.getTerm(), register);
                 a += "\tidiv " + register + "\n";
                 a += "\tmov " + register + ", eax\n";
+                a += "\tpop eax\n";
+                a += "\tpop edx\n";
             }
         }
 
