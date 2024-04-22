@@ -1,2 +1,3 @@
-int testNum = 0;
-exit testNum;
+int test = (8 + 4) / (2 * 1 + 2);
+int a = test * 9;
+exit a + 1;
