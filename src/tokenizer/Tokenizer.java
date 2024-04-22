@@ -18,6 +18,9 @@ public class Tokenizer {
     static final String EQUALS = "=";
     static final String OPEN_PAREN = "(";
     static final String CLOSE_PAREN = ")";
+    static final String HASHTAG = "#";
+    static final String OPEN_BRACKET = "[";
+    static final String CLOSE_BRACKET = "]";
     static final String SEMICOLON = ";";
     static final String EXIT = "exit";
     static final String TYPE_INT = "int";
@@ -36,15 +39,37 @@ public class Tokenizer {
         
         while (peek() != NULL_STR)
         {
-            if (isStringWhitespace( peek() ))
+            if (isStringWhitespace( peek() ) || peek() == HASHTAG)
             {
                 if (buffer.length() > 0)
                 {
                     tokenList.add( getTokenFromString(buffer) );
                     buffer = "";
                 }
+                
+                if (consume() == HASHTAG)
+                {
+                    if (consume() == OPEN_BRACKET)
+                    {
+                        boolean commentClosed = false;
 
-                consume();
+                        while (!commentClosed)
+                        {
+                            String next = consume();
+
+                            if (next == NULL_STR)
+                            {
+                                throw new TokenException("Expected ']#' to close comment");
+                            }
+
+                            if (next == CLOSE_BRACKET && peek() == HASHTAG)
+                            {
+                                consume();
+                                commentClosed = true;
+                            }
+                        }
+                    }
+                }
             }
             else if (buffer.length() > 0)
             {
@@ -61,6 +86,8 @@ public class Tokenizer {
                     tokenList.add( getTokenFromString(buffer) );
                     tokenList.add( getTokenFromString( consume() ) );
                     buffer = "";
+
+                    case HASHTAG:
                     break;
 
                     default:
@@ -76,6 +103,9 @@ public class Tokenizer {
                         case SEMICOLON:
                         tokenList.add( getTokenFromString(buffer) );
                         buffer = "";
+                        break;
+
+                        case HASHTAG:
                         break;
 
                         default:
