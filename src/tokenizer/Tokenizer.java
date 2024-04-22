@@ -16,6 +16,8 @@ public class Tokenizer {
     static final String TIMES = "*";
     static final String DIVISION = "/";
     static final String EQUALS = "=";
+    static final String OPEN_PAREN = "(";
+    static final String CLOSE_PAREN = ")";
     static final String SEMICOLON = ";";
     static final String EXIT = "exit";
     static final String TYPE_INT = "int";
@@ -52,6 +54,8 @@ public class Tokenizer {
                     case MINUS:
                     case TIMES:
                     case DIVISION:
+                    case OPEN_PAREN:
+                    case CLOSE_PAREN:
                     case EQUALS:
                     case SEMICOLON:
                     tokenList.add( getTokenFromString(buffer) );
@@ -66,6 +70,8 @@ public class Tokenizer {
                         case MINUS:
                         case TIMES:
                         case DIVISION:
+                        case OPEN_PAREN:
+                        case CLOSE_PAREN:
                         case EQUALS:
                         case SEMICOLON:
                         tokenList.add( getTokenFromString(buffer) );
@@ -135,6 +141,12 @@ public class Tokenizer {
 
             case DIVISION:
             return new Token(TokenType.DIVISION, test, strPos - test.length() + 1);
+
+            case OPEN_PAREN:
+            return new Token(TokenType.OPEN_PAREN, test, strPos - test.length() + 1);
+
+            case CLOSE_PAREN:
+            return new Token(TokenType.CLOSE_PAREN, test, strPos - test.length() + 1);
 
             case EQUALS:
             return new Token(TokenType.EQUALS, test, strPos - test.length() + 1);

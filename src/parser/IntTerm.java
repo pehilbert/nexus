@@ -4,15 +4,46 @@ import tokenizer.Token;
 
 public class IntTerm
 {
-    private Token token;
+    private IntTerm term;
+    private Token operator;
+    private IntFactor factor;
 
-    public IntTerm(Token inToken)
+    public IntTerm(IntTerm inTerm, Token inOperator, IntFactor inFactor)
     {
-        token = inToken;
+        term = inTerm;
+        operator = inOperator;
+        factor = inFactor;
     }
 
-    public Token getToken()
+    public IntTerm(IntFactor inFactor)
     {
-        return token;
+        term = null;
+        operator = null;
+        factor = inFactor;
+    }
+
+    public IntTerm getTerm()
+    {
+        return term;
+    }
+
+    public Token getOperator()
+    {
+        return operator;
+    }
+
+    public IntFactor getFactor()
+    {
+        return factor;
+    }
+
+    public String toString()
+    {
+        if (term != null)
+        {
+            return factor.toString() + " " + operator.getValue() + " " + term.toString();
+        }
+
+        return factor.toString();
     }
 }

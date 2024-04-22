@@ -12,6 +12,8 @@ public enum TokenType
     MINUS,
     TIMES,
     DIVISION,
+    OPEN_PAREN,
+    CLOSE_PAREN,
     EQUALS,
     SEMICOLON,
 }

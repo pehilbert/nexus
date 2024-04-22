@@ -9,8 +9,11 @@ import parser.Statement;
 import parser.IntDeclaration;
 import parser.ExitStatement;
 import parser.IntExpression;
+import parser.IntTerm;
+import parser.IntFactor;
 
 import tokenizer.Token;
+import tokenizer.TokenType;
 
 public class AssemblyGenerator implements StatementVisitor {
     private Parser parser;
@@ -50,25 +53,17 @@ public class AssemblyGenerator implements StatementVisitor {
         return false;
     }
 
-    public String visit(IntDeclaration stmt) {
+    public String visit(IntDeclaration stmt) throws CompileException {
         String a = "";
         a += intExpressionAssembly( stmt.getExpression(), "ebx" );
 
         if ( identifiers.addIdentifier(stmt.getIdentifier().getValue() ) )
         {
-            a += "\tpush ebx\n";
+            a += "\tpush ebx\n\n";
+            return a;
         }
-        else
-        {
-            Integer offset = identifiers.getOffset(stmt.getIdentifier().getValue());
-
-            if (offset != 1)
-            {
-                a += "\tmov [esp + " + offset.toString() + "], ebx\n";
-            }
-        }
-
-        return a;
+        
+        throw new CompileException("Identifier '" + stmt.getIdentifier().getPos() + "' already defined");
     }
 
     public String visit(ExitStatement stmt) {
@@ -76,7 +71,7 @@ public class AssemblyGenerator implements StatementVisitor {
 
         a += "\tmov eax, 1\n";
         a += intExpressionAssembly(stmt.getExpression(), "ebx");
-        a += "\tint 0x80\n";
+        a += "\tint 0x80\n\n";
 
         return a;
     }
@@ -88,25 +83,89 @@ public class AssemblyGenerator implements StatementVisitor {
     private String intExpressionAssembly(IntExpression expr, String register)
     {
         String a = "";
-        Token termToken = expr.getTerm().getToken();
 
-        switch (termToken.getType())
+        a += intTermAssembly(expr.getTerm(), register);
+
+        if (expr.getOperator() != null)
         {
-            case LITERAL_INT:
-            a += "\tmov " + register + ", " + termToken.getValue() + "\n";
-            break;
+            a += "\tpush edx\n";
+            a += intExpressionAssembly(expr.getExpression(), "edx");
 
-            case IDENTIFIER:
-            Integer offset = identifiers.getOffset(termToken.getValue());
-
-            if (offset != -1)
+            if (expr.getOperator().getType() == TokenType.PLUS)
             {
-                a += "\tmov " + register + ", [esp + " + offset.toString() + "]\n";
+                a += "\tadd " + register + ", edx\n";
             }
-            break;
+            else if (expr.getOperator().getType() == TokenType.MINUS)
+            {
+                a += "\tsub " + register + ", edx\n";
+            }
 
-            default:
-            break;
+            a += "\tpop edx\n";
+        }
+
+        return a;
+    }
+
+    private String intTermAssembly(IntTerm term, String register)
+    {
+        String a = "";
+
+        a += intFactorAssembly(term.getFactor(), register);
+
+        if (term.getOperator() != null)
+        {
+            if (term.getOperator().getType() == TokenType.TIMES)
+            {
+                a += "\tpush edx\n";
+                a += intTermAssembly(term.getTerm(), "edx");
+                a += "\timul " + register + ", edx\n";
+                a += "\tpop edx\n";
+            }
+            else if (term.getOperator().getType() == TokenType.DIVISION)
+            {
+                a += "\tpush edx\n";
+                a += "\tpush eax\n";
+                a += "\txor edx, edx\n";
+                a += "\tmov eax, " + register + "\n";
+                a += intTermAssembly(term.getTerm(), register);
+                a += "\tidiv " + register + "\n";
+                a += "\tmov " + register + ", eax\n";
+            }
+        }
+
+        return a;
+    }
+
+    private String intFactorAssembly(IntFactor factor, String register)
+    {
+        String a = "";
+        Token token = factor.getToken();
+        IntExpression expr = factor.getExpression();
+
+        if (token != null)
+        {
+            switch (token.getType())
+            {
+                case LITERAL_INT:
+                a += "\tmov " + register + ", " + token.getValue() + "\n";
+                break;
+
+                case IDENTIFIER:
+                Integer offset = identifiers.getOffset(token.getValue());
+
+                if (offset != -1)
+                {
+                    a += "\tmov " + register + ", [esp + " + offset.toString() + "]\n";
+                }
+                break;
+
+                default:
+                break;
+            }
+        }
+        else
+        {
+            a += intExpressionAssembly(expr, register);
         }
 
         return a;

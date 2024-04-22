@@ -143,34 +143,96 @@ public class Parser
      private IntExpression parseIntExpression() throws ParseException
      {
         IntTerm term;
+        Token operator;
+        IntExpression expression;
 
-        if ( peek() != null )
+        try
         {
-            try
+            term = parseIntTerm();
+
+            if (peek() != null &&
+                (peek().getType() == TokenType.PLUS || peek().getType() == TokenType.MINUS))
             {
-                term = parseIntTerm();
-                return new IntExpression(term);
+                operator = consume();
+                expression = parseIntExpression();
+                return new IntExpression(expression, operator, term);
             }
-            catch (ParseException exception)
-            {
-                exception.printStackTrace();
-            }
+
+            return new IntExpression(term);
+        }
+        catch (ParseException exception)
+        {
+            exception.printStackTrace();
         }
 
-        throw new ParseException("Expected int term, got nothing");
+        throw new ParseException("Could not parse int expression");
      }
 
      private IntTerm parseIntTerm() throws ParseException
      {
-        if (peek() != null && 
-            (peek().getType() == TokenType.IDENTIFIER || 
-             peek().getType() == TokenType.LITERAL_INT) )
+        IntFactor factor;
+        Token operator;
+        IntTerm term;
+
+        try
         {
-            return new IntTerm( consume() );
+            factor = parseIntFactor();
+
+            if (peek() != null &&
+                (peek().getType() == TokenType.TIMES || peek().getType() == TokenType.DIVISION))
+            {
+                operator = consume();
+                term = parseIntTerm();
+                return new IntTerm(term, operator, factor);
+            }
+
+            return new IntTerm(factor);
+        }
+        catch (ParseException exception)
+        {
+            exception.printStackTrace();
         }
 
-        throw new ParseException("Expected identifier or int literal, got " + 
-                                 peek().getValue());
+        throw new ParseException("Could not parse int term");
+     }
+
+     private IntFactor parseIntFactor() throws ParseException
+     {
+        IntFactor newFactor;
+
+        if (peek() != null)
+        {
+            if (peek().getType() == TokenType.LITERAL_INT ||
+            peek().getType() == TokenType.IDENTIFIER)
+            {
+                return new IntFactor(consume());
+            }
+            else if (peek().getType() == TokenType.OPEN_PAREN)
+            {
+                consume();
+                
+                try
+                {
+                    newFactor = new IntFactor(parseIntExpression());
+
+                    if (peek().getType() == TokenType.CLOSE_PAREN)
+                    {
+                        consume();
+                        return newFactor;
+                    }
+                        
+                    throw new ParseException("Expected ')', got " + peek().getValue());
+                }
+                catch (ParseException exception)
+                {
+                    exception.printStackTrace();
+                }
+            }
+
+            throw new ParseException("Expected int literal, identifier, or '(', got " + peek().getValue());
+        }
+
+        throw new ParseException("Expected int factor, got nothing");
      }
 
      private Token peek()

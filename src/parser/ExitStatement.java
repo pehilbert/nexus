@@ -1,5 +1,6 @@
 package parser;
 
+import codegen.CompileException;
 import codegen.StatementVisitor;
 
 public class ExitStatement implements Statement 
@@ -13,8 +14,7 @@ public class ExitStatement implements Statement
 
     public void printStatement()
     {
-        System.out.println("Exit statement: " + 
-                            expression.getTerm().getToken().getValue());
+        System.out.println("Exit statement: " + expression.toString());
     }
 
     public IntExpression getExpression()
@@ -24,6 +24,15 @@ public class ExitStatement implements Statement
 
     public String accept(StatementVisitor visitor)
     {
-        return visitor.visit(this);
+        try
+        {
+            return visitor.visit(this);
+        }
+        catch (CompileException exception)
+        {
+            exception.printStackTrace();
+        }
+
+        return "";
     }
 }

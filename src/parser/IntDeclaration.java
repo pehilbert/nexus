@@ -2,6 +2,7 @@ package parser;
 
 import tokenizer.Token;
 import codegen.StatementVisitor;
+import codegen.CompileException;
 
 public class IntDeclaration implements Statement 
 {
@@ -16,8 +17,7 @@ public class IntDeclaration implements Statement
 
     public void printStatement()
     {
-        System.out.println("Int declaration: " + identifierToken.getValue() + 
-                            ", " + expression.getTerm().getToken().getValue());
+        System.out.println("Int declaration: " + expression.toString());
     }
 
     public Token getIdentifier()
@@ -32,6 +32,15 @@ public class IntDeclaration implements Statement
 
     public String accept(StatementVisitor visitor)
     {
-        return visitor.visit(this);
+        try
+        {
+            return visitor.visit(this);
+        }
+        catch (CompileException exception)
+        {
+            exception.printStackTrace();
+        }
+
+        return "";
     }
 }
