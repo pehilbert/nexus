@@ -90,36 +90,21 @@ public class AssemblyGenerator implements StatementVisitor {
             return intTermAssembly(expr.getTerm(), register);
         }
 
-        a += "\tpush ecx\n";
+        a += intExpressionAssembly(expr.getLeft(), register);
+
         a += "\tpush edx\n";
-
-        // get left hand side, store in ecx
-        a += "\tpush " + register + "\n";
-        a += intExpressionAssembly(expr.getLeft(), "ecx");
-        a += "\tpop " + register + "\n";
-
-        // get right hand side, store in edx
-        a += "\tpush ecx\n";
         a += "\tpush " + register + "\n";
         a += intExpressionAssembly(expr.getRight(), "edx");
         a += "\tpop " + register + "\n";
-        a += "\tpop ecx\n";
 
-        // operate accordingly, store result in ecx
-        if (expr.getOperator().getType() == TokenType.PLUS)
+        if (expr.getOperator().getType() == TokenType.PLUS) 
         {
-            a += "\tadd ecx, edx\n";
-        }
-        else if (expr.getOperator().getType() == TokenType.MINUS)
+            a += "\tadd " + register + ", edx\n"; // Add the result of the right-hand expression
+        } 
+        else if (expr.getOperator().getType() == TokenType.MINUS) 
         {
-            a += "\tsub ecx, edx\n";
+            a += "\tsub " + register + ", edx\n"; // Subtract the right-hand result
         }
-
-        // move final result into the register
-        a += "\tmov " + register + ", ecx\n";
-
-        a += "\tpop edx\n";
-        a += "\tpop ecx\n";
 
         return a;
     }
@@ -138,7 +123,7 @@ public class AssemblyGenerator implements StatementVisitor {
                 a += "\tpush" + register + "\n";
                 a += intTermAssembly(term.getTerm(), "edx");
                 a += "\tpop " + register + "\n";
-                a += "\timul " + register + "edx\n";
+                a += "\timul " + register + ", edx\n";
                 a += "\tpop edx\n";
             }
             else if (term.getOperator().getType() == TokenType.DIVISION)
