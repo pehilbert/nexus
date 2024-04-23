@@ -77,7 +77,7 @@ public class Tokenizer {
                 // handle multi-line comment
                 if (peek() == OPEN_BRACKET)
                 {
-                    consume(); // Consume the OPEN_BRACKET
+                    consume();
                     consumeMultiLineComment();
                 }
                 // handle single-line comment
@@ -122,17 +122,17 @@ public class Tokenizer {
         {
             if (peek() == CLOSE_BRACKET)
             {
-                consume(); // Consume the CLOSE_BRACKET
+                consume();
 
                 if (peek() == HASHTAG)
                 {
-                    consume(); // Consume the HASHTAG, ending the comment
+                    consume();
                     return;
                 }
             }
             else if (peek() == HASHTAG)
             {
-                consume(); // Consume the HASHTAG, ending the comment
+                consume();
 
                 if (peek() == OPEN_BRACKET)
                 {
@@ -142,7 +142,7 @@ public class Tokenizer {
             }
             else
             {
-                consume(); // Consume the next character and continue
+                consume();
             }
         }
 
