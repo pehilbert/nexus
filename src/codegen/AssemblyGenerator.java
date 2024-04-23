@@ -41,7 +41,7 @@ public class AssemblyGenerator implements StatementVisitor {
                 i++;
             }
 
-            System.out.println(identifiers.toString());
+            //System.out.println(identifiers.toString());
 
             return true;
         } 
@@ -84,24 +84,42 @@ public class AssemblyGenerator implements StatementVisitor {
     {
         String a = "";
 
-        a += intTermAssembly(expr.getTerm(), register);
-
-        if (expr.getOperator() != null)
+        // base case: single int term
+        if (expr.getTerm() != null)
         {
-            a += "\tpush edx\n";
-            a += intExpressionAssembly(expr.getExpression(), "edx");
-
-            if (expr.getOperator().getType() == TokenType.PLUS)
-            {
-                a += "\tadd " + register + ", edx\n";
-            }
-            else if (expr.getOperator().getType() == TokenType.MINUS)
-            {
-                a += "\tsub " + register + ", edx\n";
-            }
-
-            a += "\tpop edx\n";
+            return intTermAssembly(expr.getTerm(), register);
         }
+
+        a += "\tpush ecx\n";
+        a += "\tpush edx\n";
+
+        // get left hand side, store in ecx
+        a += "\tpush " + register + "\n";
+        a += intExpressionAssembly(expr.getLeft(), "ecx");
+        a += "\tpop " + register + "\n";
+
+        // get right hand side, store in edx
+        a += "\tpush ecx\n";
+        a += "\tpush " + register + "\n";
+        a += intExpressionAssembly(expr.getRight(), "edx");
+        a += "\tpop " + register + "\n";
+        a += "\tpop ecx\n";
+
+        // operate accordingly, store result in ecx
+        if (expr.getOperator().getType() == TokenType.PLUS)
+        {
+            a += "\tadd ecx, edx\n";
+        }
+        else if (expr.getOperator().getType() == TokenType.MINUS)
+        {
+            a += "\tsub ecx, edx\n";
+        }
+
+        // move final result into the register
+        a += "\tmov " + register + ", ecx\n";
+
+        a += "\tpop edx\n";
+        a += "\tpop ecx\n";
 
         return a;
     }
@@ -109,7 +127,7 @@ public class AssemblyGenerator implements StatementVisitor {
     private String intTermAssembly(IntTerm term, String register)
     {
         String a = "";
-
+        
         a += intFactorAssembly(term.getFactor(), register);
 
         if (term.getOperator() != null)
@@ -117,14 +135,16 @@ public class AssemblyGenerator implements StatementVisitor {
             if (term.getOperator().getType() == TokenType.TIMES)
             {
                 a += "\tpush edx\n";
+                a += "\tpush" + register + "\n";
                 a += intTermAssembly(term.getTerm(), "edx");
-                a += "\timul " + register + ", edx\n";
+                a += "\tpop " + register + "\n";
+                a += "\timul " + register + "edx\n";
                 a += "\tpop edx\n";
             }
             else if (term.getOperator().getType() == TokenType.DIVISION)
             {
-                a += "\tpush edx\n";
                 a += "\tpush eax\n";
+                a += "\tpush edx\n";
                 a += "\txor edx, edx\n";
                 a += "\tmov eax, " + register + "\n";
                 a += intTermAssembly(term.getTerm(), register);

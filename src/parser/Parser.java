@@ -142,30 +142,46 @@ public class Parser
 
      private IntExpression parseIntExpression() throws ParseException
      {
+        IntExpression expression;
+        IntExpression rightExpression;
         IntTerm term;
         Token operator;
-        IntExpression expression;
-
+        
         try
         {
             term = parseIntTerm();
-
-            if (peek() != null &&
-                (peek().getType() == TokenType.PLUS || peek().getType() == TokenType.MINUS))
-            {
-                operator = consume();
-                expression = parseIntExpression();
-                return new IntExpression(expression, operator, term);
-            }
-
-            return new IntExpression(term);
+            expression = new IntExpression(term);
         }
         catch (ParseException exception)
         {
             exception.printStackTrace();
+            return null;
         }
 
-        throw new ParseException("Could not parse int expression");
+        System.out.println(expression.toString());
+
+        while (peek().getType() == TokenType.PLUS || peek().getType() == TokenType.MINUS)
+        {
+            operator = consume();
+
+            try
+            {
+                term = parseIntTerm();
+            }
+            catch (ParseException exception)
+            {
+                exception.printStackTrace();
+                return null;
+            }
+
+            rightExpression = new IntExpression(term);
+
+            expression = new IntExpression(expression, operator, rightExpression);
+
+            System.out.println(expression.toString());
+        }
+
+        return expression;
      }
 
      private IntTerm parseIntTerm() throws ParseException
