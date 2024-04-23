@@ -3,6 +3,10 @@
 
     #[
         Nested multi line comment
+
+        #[
+            Another one lmao
+        ]#
     ]#
 ]#
 int test = (8 + 4) / (2 * 1 + 2);# inline comment

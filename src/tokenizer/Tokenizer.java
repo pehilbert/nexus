@@ -127,7 +127,7 @@ public class Tokenizer {
                 if (peek() == HASHTAG)
                 {
                     consume(); // Consume the HASHTAG, ending the comment
-                    break;
+                    return;
                 }
             }
             else if (peek() == HASHTAG)
