@@ -8,21 +8,22 @@ public class Tokenizer {
     private String str;
     private int strPos;
 
-    static final String NULL_STR = "\0";
+    static final char NULL_CHAR = '\0';
     static final char UNDERSCORE = '_';
 
-    static final String PLUS = "+";
-    static final String MINUS = "-";
-    static final String TIMES = "*";
-    static final String DIVISION = "/";
-    static final String EQUALS = "=";
-    static final String OPEN_PAREN = "(";
-    static final String CLOSE_PAREN = ")";
-    static final String HASHTAG = "#";
-    static final String OPEN_BRACKET = "[";
-    static final String CLOSE_BRACKET = "]";
-    static final String SEMICOLON = ";";
-    static final String ENDLINE = "\n";
+    static final char PLUS = '+';
+    static final char MINUS = '-';
+    static final char TIMES = '*';
+    static final char DIVISION = '/';
+    static final char EQUALS = '=';
+    static final char OPEN_PAREN = '(';
+    static final char CLOSE_PAREN = ')';
+    static final char HASHTAG = '#';
+    static final char OPEN_BRACKET = '[';
+    static final char CLOSE_BRACKET = ']';
+    static final char SEMICOLON = ';';
+    static final char ENDLINE = '\n';
+
     static final String EXIT = "exit";
     static final String TYPE_INT = "int";
 
@@ -38,7 +39,7 @@ public class Tokenizer {
         
         String buffer = "";
         
-        while (peek() != NULL_STR)
+        while (peek() != NULL_CHAR)
         {
             switch (peek())
             {
@@ -59,7 +60,7 @@ public class Tokenizer {
                 }
 
                 // also tokenize the current single-character token
-                tokenList.add(getTokenFromString(consume()));
+                tokenList.add(getTokenFromString("" + consume()));
                 break;
 
                 // handle comments
@@ -73,36 +74,16 @@ public class Tokenizer {
 
                 consume();
 
-                System.out.println("Character after hashtag: " + peek());
-
                 // handle multi-line comment
                 if (peek() == OPEN_BRACKET)
                 {
-                    System.out.println("Multiline comment");
-                    consume();
-                    boolean endComment = false;
-
-                    while (!endComment && peek() != NULL_STR)
-                    {
-                        if (consume() == CLOSE_BRACKET && consume() == HASHTAG)
-                        {
-                            endComment = true;
-                        }
-                    }
-
-                    if (!endComment)
-                    {
-                        throw new TokenException("Could not find the end of the multiline comment");
-                    }
+                    consume(); // Consume the OPEN_BRACKET
+                    consumeMultiLineComment();
                 }
                 // handle single-line comment
                 else
                 {
-                    System.out.println("Single line comment");
-                    while (peek() != NULL_STR && consume() != ENDLINE)
-                    {
-                        
-                    }
+                    while (peek() != NULL_CHAR && consume() != ENDLINE) {}
                 }
 
                 break;
@@ -111,7 +92,7 @@ public class Tokenizer {
                 default:
 
                 // handle whitespace
-                if (isStringWhitespace(peek()))
+                if (Character.isWhitespace(peek()))
                 {
                     // if something was already read, tokenize it
                     if (buffer.length() > 0)
@@ -133,6 +114,41 @@ public class Tokenizer {
         }
     }
 
+    // consumes characters until "]#" is found, but if another "#["
+    // is found, recursively calls itself to consume that properly as well
+    public void consumeMultiLineComment() throws TokenException
+    {
+        while (peek() != NULL_CHAR)
+        {
+            if (peek() == CLOSE_BRACKET)
+            {
+                consume(); // Consume the CLOSE_BRACKET
+
+                if (peek() == HASHTAG)
+                {
+                    consume(); // Consume the HASHTAG, ending the comment
+                    break;
+                }
+            }
+            else if (peek() == HASHTAG)
+            {
+                consume(); // Consume the HASHTAG, ending the comment
+
+                if (peek() == OPEN_BRACKET)
+                {
+                    consume();
+                    consumeMultiLineComment();
+                }
+            }
+            else
+            {
+                consume(); // Consume the next character and continue
+            }
+        }
+
+        throw new TokenException("Could not find the end of multi-line comment");
+    }
+
     public void printTokenList()
     {
         for (int i = 0; i < tokenList.size(); i++)
@@ -147,31 +163,32 @@ public class Tokenizer {
         return tokenList;
     }
 
-    private String peek()
+    private char peek()
     {
         if (strPos < str.length())
         {
-            return "" + str.charAt(strPos);
+            return str.charAt(strPos);
         }
 
-        return NULL_STR;
+        return NULL_CHAR;
     }
 
-    private String consume()
+    private char consume()
     {
         if (strPos < str.length())
         {
-            String returnChar = "" + str.charAt(strPos);
+            char returnChar = str.charAt(strPos);
             strPos++;
             return returnChar;
         }
 
-        return NULL_STR;
+        return NULL_CHAR;
     }
 
     private Token getTokenFromString(String test) throws TokenException
     {
-        switch (test)
+        // Test single character tokens
+        switch (test.charAt(0))
         {
             case PLUS:
             return new Token(TokenType.PLUS, test, strPos - test.length() + 1);
@@ -197,21 +214,26 @@ public class Tokenizer {
             case SEMICOLON:
             return new Token(TokenType.SEMICOLON, test, strPos - test.length() + 1);
 
-            case EXIT:
-            return new Token(TokenType.EXIT, test, strPos - test.length() + 1);
-
-            case TYPE_INT:
-            return new Token(TokenType.TYPE_INT, test, strPos - test.length() + 1);
-
             default:
-            if (isIdentifier(test))
+            // Test multi-character strings
+            switch (test)
             {
-                return new Token(TokenType.IDENTIFIER, test, strPos - test.length() + 1);
-            }
+                case EXIT:
+                return new Token(TokenType.EXIT, test, strPos - test.length() + 1);
 
-            if (isIntLiteral(test))
-            {
-                return new Token(TokenType.LITERAL_INT, test, strPos - test.length() + 1);
+                case TYPE_INT:
+                return new Token(TokenType.TYPE_INT, test, strPos - test.length() + 1);
+
+                default:
+                if (isIdentifier(test))
+                {
+                    return new Token(TokenType.IDENTIFIER, test, strPos - test.length() + 1);
+                }
+
+                if (isIntLiteral(test))
+                {
+                    return new Token(TokenType.LITERAL_INT, test, strPos - test.length() + 1);
+                }
             }
 
             throw new TokenException("'" + test + "' is not a valid token.");
@@ -236,19 +258,6 @@ public class Tokenizer {
         for (int i = 0; i < test.length(); i++)
         {
             if (!Character.isDigit(test.charAt(i)))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private boolean isStringWhitespace(String test)
-    {
-        for (int i = 0; i < test.length(); i++)
-        {
-            if (!Character.isWhitespace(test.charAt(i)))
             {
                 return false;
             }

@@ -1,7 +1,15 @@
 #[ 
     Multi line comment
+
+    #[
+        Nested multi line comment
+    ]#
 ]#
 int test = (8 + 4) / (2 * 1 + 2);# inline comment
+#[
+    another multi line comment
+]#
+
 int a = test * 9; # another inline comment
 
 # single line comment
