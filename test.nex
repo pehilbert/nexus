@@ -1,3 +1,21 @@
-int test = (8 + 4) / (2 * 1 + 2);
-int a = test * 9;
+#[ 
+    Multi line comment
+
+    #[
+        Nested multi line comment
+
+        #[
+            Another one lmao
+        ]#
+    ]#
+]#
+int test = (8 + 4) / (2 * 1 + 2);# inline comment
+#[
+    another multi line comment
+]#
+
+int a = test * 9; # another inline comment
+
+# single line comment
+
 exit a + 1;

@@ -8,17 +8,22 @@ public class Tokenizer {
     private String str;
     private int strPos;
 
-    static final String NULL_STR = "\0";
+    static final char NULL_CHAR = '\0';
     static final char UNDERSCORE = '_';
 
-    static final String PLUS = "+";
-    static final String MINUS = "-";
-    static final String TIMES = "*";
-    static final String DIVISION = "/";
-    static final String EQUALS = "=";
-    static final String OPEN_PAREN = "(";
-    static final String CLOSE_PAREN = ")";
-    static final String SEMICOLON = ";";
+    static final char PLUS = '+';
+    static final char MINUS = '-';
+    static final char TIMES = '*';
+    static final char DIVISION = '/';
+    static final char EQUALS = '=';
+    static final char OPEN_PAREN = '(';
+    static final char CLOSE_PAREN = ')';
+    static final char HASHTAG = '#';
+    static final char OPEN_BRACKET = '[';
+    static final char CLOSE_BRACKET = ']';
+    static final char SEMICOLON = ';';
+    static final char ENDLINE = '\n';
+
     static final String EXIT = "exit";
     static final String TYPE_INT = "int";
 
@@ -34,60 +39,114 @@ public class Tokenizer {
         
         String buffer = "";
         
-        while (peek() != NULL_STR)
+        while (peek() != NULL_CHAR)
         {
-            if (isStringWhitespace( peek() ))
+            switch (peek())
             {
+                // single-character tokens that would end any current token
+                case PLUS:
+                case MINUS:
+                case TIMES:
+                case DIVISION:
+                case EQUALS:
+                case OPEN_PAREN:
+                case CLOSE_PAREN:
+                case SEMICOLON:
+                // if something was already read, tokenize it
                 if (buffer.length() > 0)
                 {
-                    tokenList.add( getTokenFromString(buffer) );
+                    tokenList.add(getTokenFromString(buffer));
+                    buffer = "";
+                }
+
+                // also tokenize the current single-character token
+                tokenList.add(getTokenFromString("" + consume()));
+                break;
+
+                // handle comments
+                case HASHTAG:
+                // if something was already read, tokenize it
+                if (buffer.length() > 0)
+                {
+                    tokenList.add(getTokenFromString(buffer));
                     buffer = "";
                 }
 
                 consume();
-            }
-            else if (buffer.length() > 0)
-            {
-                switch( peek() )
+
+                // handle multi-line comment
+                if (peek() == OPEN_BRACKET)
                 {
-                    case PLUS:
-                    case MINUS:
-                    case TIMES:
-                    case DIVISION:
-                    case OPEN_PAREN:
-                    case CLOSE_PAREN:
-                    case EQUALS:
-                    case SEMICOLON:
-                    tokenList.add( getTokenFromString(buffer) );
-                    tokenList.add( getTokenFromString( consume() ) );
-                    buffer = "";
-                    break;
+                    consume();
+                    consumeMultiLineComment();
+                }
+                // handle single-line comment
+                else
+                {
+                    while (peek() != NULL_CHAR && consume() != ENDLINE) {}
+                }
 
-                    default:
-                    switch (buffer)
+                break;
+
+                // handle everything else
+                default:
+
+                // handle whitespace
+                if (Character.isWhitespace(peek()))
+                {
+                    // if something was already read, tokenize it
+                    if (buffer.length() > 0)
                     {
-                        case PLUS:
-                        case MINUS:
-                        case TIMES:
-                        case DIVISION:
-                        case OPEN_PAREN:
-                        case CLOSE_PAREN:
-                        case EQUALS:
-                        case SEMICOLON:
-                        tokenList.add( getTokenFromString(buffer) );
+                        tokenList.add(getTokenFromString(buffer));
                         buffer = "";
-                        break;
-
-                        default:
-                        buffer += consume();
                     }
+                    
+                    // consume current whitespace character
+                    consume();
+                }
+                // handle non-whitespace
+                else 
+                {
+                    // just keep reading
+                    buffer += consume();
+                }
+            }   
+        }
+    }
+
+    // consumes characters until "]#" is found, but if another "#["
+    // is found, recursively calls itself to consume that properly as well
+    public void consumeMultiLineComment() throws TokenException
+    {
+        while (peek() != NULL_CHAR)
+        {
+            if (peek() == CLOSE_BRACKET)
+            {
+                consume();
+
+                if (peek() == HASHTAG)
+                {
+                    consume();
+                    return;
+                }
+            }
+            else if (peek() == HASHTAG)
+            {
+                consume();
+
+                if (peek() == OPEN_BRACKET)
+                {
+                    consume();
+                    consumeMultiLineComment();
                 }
             }
             else
             {
-                buffer += consume();
+                consume();
             }
         }
+
+        throw new TokenException("Could not find the end of multi-line comment");
     }
 
     public void printTokenList()
@@ -104,31 +163,32 @@ public class Tokenizer {
         return tokenList;
     }
 
-    private String peek()
+    private char peek()
     {
         if (strPos < str.length())
         {
-            return "" + str.charAt(strPos);
+            return str.charAt(strPos);
         }
 
-        return NULL_STR;
+        return NULL_CHAR;
     }
 
-    private String consume()
+    private char consume()
     {
         if (strPos < str.length())
         {
-            String returnChar = "" + str.charAt(strPos);
+            char returnChar = str.charAt(strPos);
             strPos++;
             return returnChar;
         }
 
-        return NULL_STR;
+        return NULL_CHAR;
     }
 
     private Token getTokenFromString(String test) throws TokenException
     {
-        switch (test)
+        // Test single character tokens
+        switch (test.charAt(0))
         {
             case PLUS:
             return new Token(TokenType.PLUS, test, strPos - test.length() + 1);
@@ -154,21 +214,26 @@ public class Tokenizer {
             case SEMICOLON:
             return new Token(TokenType.SEMICOLON, test, strPos - test.length() + 1);
 
-            case EXIT:
-            return new Token(TokenType.EXIT, test, strPos - test.length() + 1);
-
-            case TYPE_INT:
-            return new Token(TokenType.TYPE_INT, test, strPos - test.length() + 1);
-
             default:
-            if (isIdentifier(test))
+            // Test multi-character strings
+            switch (test)
             {
-                return new Token(TokenType.IDENTIFIER, test, strPos - test.length() + 1);
-            }
+                case EXIT:
+                return new Token(TokenType.EXIT, test, strPos - test.length() + 1);
 
-            if (isIntLiteral(test))
-            {
-                return new Token(TokenType.LITERAL_INT, test, strPos - test.length() + 1);
+                case TYPE_INT:
+                return new Token(TokenType.TYPE_INT, test, strPos - test.length() + 1);
+
+                default:
+                if (isIdentifier(test))
+                {
+                    return new Token(TokenType.IDENTIFIER, test, strPos - test.length() + 1);
+                }
+
+                if (isIntLiteral(test))
+                {
+                    return new Token(TokenType.LITERAL_INT, test, strPos - test.length() + 1);
+                }
             }
 
             throw new TokenException("'" + test + "' is not a valid token.");
@@ -193,19 +258,6 @@ public class Tokenizer {
         for (int i = 0; i < test.length(); i++)
         {
             if (!Character.isDigit(test.charAt(i)))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private boolean isStringWhitespace(String test)
-    {
-        for (int i = 0; i < test.length(); i++)
-        {
-            if (!Character.isWhitespace(test.charAt(i)))
             {
                 return false;
             }
