@@ -5,7 +5,7 @@
 <exit_statement> ::= exit <expression>;
 
 <int_expression> ::= <int_term> | <int_expression> ('+' | '-') <int_expression>
-<int_term> ::= <int_factor> | <int_factor> ('*' | '/') <int_term>
+<int_term> ::= <int_factor> | <int_factor> ('*' | '/') <int_factor>
 <int_factor> ::= <int_literal> | <identifier> | '(' <int_expression> ')'
 
 <int_literal> ::= [0-9]+

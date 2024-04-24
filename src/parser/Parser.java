@@ -186,23 +186,23 @@ public class Parser
 
      private IntTerm parseIntTerm() throws ParseException
      {
-        IntFactor factor;
+        IntFactor left;
         Token operator;
-        IntTerm term;
+        IntFactor right;
 
         try
         {
-            factor = parseIntFactor();
+            left = parseIntFactor();
 
             if (peek() != null &&
                 (peek().getType() == TokenType.TIMES || peek().getType() == TokenType.DIVISION))
             {
                 operator = consume();
-                term = parseIntTerm();
-                return new IntTerm(term, operator, factor);
+                right = parseIntFactor();
+                return new IntTerm(left, operator, right);
             }
 
-            return new IntTerm(factor);
+            return new IntTerm(left);
         }
         catch (ParseException exception)
         {

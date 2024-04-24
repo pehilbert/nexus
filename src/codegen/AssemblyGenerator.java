@@ -84,27 +84,40 @@ public class AssemblyGenerator implements StatementVisitor {
     {
         String a = "";
 
-        // base case: single int term
+        // base case: single int term, simply put it into the register
         if (expr.getTerm() != null)
         {
             return intTermAssembly(expr.getTerm(), register);
         }
 
+        // Evaluate left hand side, put into register
         a += intExpressionAssembly(expr.getLeft(), register);
 
-        a += "\tpush edx\n";
+        // Preserve ecx and register
+        a += "\tpush ecx\n";
         a += "\tpush " + register + "\n";
-        a += intExpressionAssembly(expr.getRight(), "edx");
-        a += "\tpop " + register + "\n";
 
-        if (expr.getOperator().getType() == TokenType.PLUS) 
+        // Evalute right hand side, put into register
+        a += intExpressionAssembly(expr.getRight(), register);
+
+        // Get left hand side off of the stack
+        a += "\tpop ecx\n";
+
+        // Perform operation
+        if (expr.getOperator().getType() == TokenType.PLUS)
         {
-            a += "\tadd " + register + ", edx\n"; // Add the result of the right-hand expression
-        } 
-        else if (expr.getOperator().getType() == TokenType.MINUS) 
-        {
-            a += "\tsub " + register + ", edx\n"; // Subtract the right-hand result
+            a += "\tadd ecx, " + register + "\n";
         }
+        else if (expr.getOperator().getType() == TokenType.MINUS)
+        {
+            a += "\tsub ecx, " + register + "\n";
+        }
+
+        // Move result into register
+        a += "\tmov " + register + ", ecx\n";
+
+        // Restore original ecx
+        a += "\tpop ecx\n";
 
         return a;
     }
@@ -112,32 +125,41 @@ public class AssemblyGenerator implements StatementVisitor {
     private String intTermAssembly(IntTerm term, String register)
     {
         String a = "";
-        
-        a += intFactorAssembly(term.getFactor(), register);
 
-        if (term.getOperator() != null)
+        // base case: single int factor, simply move into register
+        if (term.getOperator() == null)
         {
-            if (term.getOperator().getType() == TokenType.TIMES)
-            {
-                a += "\tpush edx\n";
-                a += "\tpush" + register + "\n";
-                a += intTermAssembly(term.getTerm(), "edx");
-                a += "\tpop " + register + "\n";
-                a += "\timul " + register + ", edx\n";
-                a += "\tpop edx\n";
-            }
-            else if (term.getOperator().getType() == TokenType.DIVISION)
-            {
-                a += "\tpush eax\n";
-                a += "\tpush edx\n";
-                a += "\txor edx, edx\n";
-                a += "\tmov eax, " + register + "\n";
-                a += intTermAssembly(term.getTerm(), register);
-                a += "\tidiv " + register + "\n";
-                a += "\tmov " + register + ", eax\n";
-                a += "\tpop eax\n";
-                a += "\tpop edx\n";
-            }
+            return intFactorAssembly(term.getLeft(), register);
+        }
+
+        // Handle multiplication
+        if (term.getOperator().getType() == TokenType.TIMES)
+        {
+            // Evaluate left hand side, put into register
+            a += intFactorAssembly(term.getLeft(), register);
+
+            // Preserve edx and register
+            a += "\tpush edx\n";
+            a += "\tpush " + register + "\n";
+
+            // Evaluate right hand side, put into register
+            a += intFactorAssembly(term.getRight(), register);
+
+            // Get left hand side off of the stack
+            a += "\tpop edx\n";
+
+            // Perform operation
+            a += "\timul edx, " + register + "\n";
+
+            // Move result into register
+            a += "\tmov " + register + ", edx\n";
+
+            // Restore original edx
+            a += "\tpop edx\n";
+        }
+        else if (term.getOperator().getType() == TokenType.DIVISION)
+        {
+            a += "";
         }
 
         return a;
