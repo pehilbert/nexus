@@ -159,7 +159,32 @@ public class AssemblyGenerator implements StatementVisitor {
         }
         else if (term.getOperator().getType() == TokenType.DIVISION)
         {
-            a += "";
+            // Evaluate left hand side, put into register
+            a += intFactorAssembly(term.getLeft(), register);
+
+            // preserve eax, edx, and register
+            a += "\tpush eax\n";
+            a += "\tpush edx\n";
+            a += "\tpush " + register + "\n";
+
+            // evaluate right hand side, put into register
+            a += intFactorAssembly(term.getRight(), register);
+
+            // get the left hand side off of the stack, put in eax
+            a += "\tpop eax\n";
+
+            // sign extend left hand side
+            a += "\tcdq\n";
+
+            // perform division with register
+            a += "\tidiv " + register + "\n";
+
+            // move result in eax into register 
+            a += "\tmov " + register + ", eax\n";
+
+            // restore eax and edx
+            a += "\tpop edx\n";
+            a += "\tpop eax\n";
         }
 
         return a;
@@ -184,7 +209,7 @@ public class AssemblyGenerator implements StatementVisitor {
 
                 if (offset != -1)
                 {
-                    a += "\tmov " + register + ", [esp + " + offset.toString() + "]\n";
+                    a += "\tmov " + register + ", [ebp - " + offset.toString() + "]\n";
                 }
                 break;
 
@@ -207,6 +232,7 @@ public class AssemblyGenerator implements StatementVisitor {
         a += "section .text\n";
         a += "global _start\n\n";
         a += "_start:\n";
+        a += "\tmov ebp, esp\n";
 
         return a;
     }

@@ -158,8 +158,6 @@ public class Parser
             return null;
         }
 
-        System.out.println(expression.toString());
-
         while (peek().getType() == TokenType.PLUS || peek().getType() == TokenType.MINUS)
         {
             operator = consume();
@@ -177,8 +175,6 @@ public class Parser
             rightExpression = new IntExpression(term);
 
             expression = new IntExpression(expression, operator, rightExpression);
-
-            System.out.println(expression.toString());
         }
 
         return expression;

@@ -27,7 +27,7 @@ public class OffsetTable {
     {
         if (table.containsKey(identifier))
         {
-            return ( (table.size() - 1) * size ) - table.get(identifier);
+            return table.get(identifier) + size;
         }
 
         return -1;
