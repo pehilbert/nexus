@@ -127,23 +127,23 @@ public class AssemblyGenerator implements StatementVisitor {
         String a = "";
 
         // base case: single int factor, simply move into register
-        if (term.getOperator() == null)
+        if (term.getFactor() != null)
         {
-            return intFactorAssembly(term.getLeft(), register);
+            return intFactorAssembly(term.getFactor(), register);
         }
 
         // Handle multiplication
         if (term.getOperator().getType() == TokenType.TIMES)
         {
             // Evaluate left hand side, put into register
-            a += intFactorAssembly(term.getLeft(), register);
+            a += intTermAssembly(term.getLeft(), register);
 
             // Preserve edx and register
             a += "\tpush edx\n";
             a += "\tpush " + register + "\n";
 
             // Evaluate right hand side, put into register
-            a += intFactorAssembly(term.getRight(), register);
+            a += intTermAssembly(term.getRight(), register);
 
             // Get left hand side off of the stack
             a += "\tpop edx\n";
@@ -160,7 +160,7 @@ public class AssemblyGenerator implements StatementVisitor {
         else if (term.getOperator().getType() == TokenType.DIVISION)
         {
             // Evaluate left hand side, put into register
-            a += intFactorAssembly(term.getLeft(), register);
+            a += intTermAssembly(term.getLeft(), register);
 
             // preserve eax, edx, and register
             a += "\tpush eax\n";
@@ -168,7 +168,7 @@ public class AssemblyGenerator implements StatementVisitor {
             a += "\tpush " + register + "\n";
 
             // evaluate right hand side, put into register
-            a += intFactorAssembly(term.getRight(), register);
+            a += intTermAssembly(term.getRight(), register);
 
             // get the left hand side off of the stack, put in eax
             a += "\tpop eax\n";
