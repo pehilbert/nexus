@@ -222,6 +222,11 @@ public class AssemblyGenerator implements StatementVisitor {
             a += intExpressionAssembly(expr, register);
         }
 
+        if (factor.isNegative())
+        {
+            a += "\tneg " + register + "\n";
+        }
+
         return a;
     }
 
