@@ -1,4 +1,5 @@
 #!/bin/bash
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
 
-javac -d ./bin ./src/*.java ./src/codegen/*.java ./src/parser/*.java ./src/tokenizer/*.java
-java -cp ./bin Nexus $@
+javac -d $SCRIPT_DIR/bin $SCRIPT_DIR/src/*.java $SCRIPT_DIR/src/codegen/*.java $SCRIPT_DIR/src/parser/*.java $SCRIPT_DIR/src/tokenizer/*.java
+java -cp $SCRIPT_DIR/bin Nexus $@
