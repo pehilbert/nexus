@@ -223,13 +223,20 @@ public class Parser
      private IntFactor parseIntFactor() throws ParseException
      {
         IntFactor newFactor;
+        boolean negative = false;
 
         if (peek() != null)
         {
+            if (peek().getType() == TokenType.MINUS)
+            {
+                negative = true;
+                consume();
+            }
+
             if (peek().getType() == TokenType.LITERAL_INT ||
             peek().getType() == TokenType.IDENTIFIER)
             {
-                return new IntFactor(consume());
+                return new IntFactor(consume(), negative);
             }
             else if (peek().getType() == TokenType.OPEN_PAREN)
             {
@@ -237,7 +244,7 @@ public class Parser
                 
                 try
                 {
-                    newFactor = new IntFactor(parseIntExpression());
+                    newFactor = new IntFactor(parseIntExpression(), negative);
 
                     if (peek().getType() == TokenType.CLOSE_PAREN)
                     {

@@ -5,17 +5,20 @@ import tokenizer.Token;
 public class IntFactor {
     private Token token;
     private IntExpression expr;
+    private boolean negative;
 
-    public IntFactor(Token inToken)
+    public IntFactor(Token inToken, boolean neg)
     {
         token = inToken;
         expr = null;
+        negative = neg;
     }
 
-    public IntFactor(IntExpression inExpr)
+    public IntFactor(IntExpression inExpr, boolean neg)
     {
         expr = inExpr;
         token = null;
+        negative = neg;
     }
 
     public Token getToken()
@@ -28,13 +31,25 @@ public class IntFactor {
         return expr;
     }
 
+    public boolean isNegative()
+    {
+        return negative;
+    }
+
     public String toString()
     {
-        if (token != null)
+        String s = "";
+
+        if (negative)
         {
-            return token.getValue();
+            s += "-";
         }
 
-        return expr.toString();
+        if (token != null)
+        {
+            return s + token.getValue();
+        }
+
+        return s + expr.toString();
     }
 }
