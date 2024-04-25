@@ -4,32 +4,25 @@ import tokenizer.Token;
 
 public class IntTerm
 {
-    private IntTerm term;
-    private Token operator;
     private IntFactor factor;
+    private IntTerm lhs;
+    private Token operator;
+    private IntTerm rhs;
 
-    public IntTerm(IntTerm inTerm, Token inOperator, IntFactor inFactor)
+    public IntTerm(IntTerm left, Token inOperator, IntTerm right)
     {
-        term = inTerm;
+        lhs = left;
         operator = inOperator;
-        factor = inFactor;
+        rhs = right;
+        factor = null;
     }
 
     public IntTerm(IntFactor inFactor)
     {
-        term = null;
-        operator = null;
         factor = inFactor;
-    }
-
-    public IntTerm getTerm()
-    {
-        return term;
-    }
-
-    public Token getOperator()
-    {
-        return operator;
+        lhs = null;
+        operator = null;
+        rhs = null;
     }
 
     public IntFactor getFactor()
@@ -37,13 +30,28 @@ public class IntTerm
         return factor;
     }
 
+    public IntTerm getLeft()
+    {
+        return lhs;
+    }
+
+    public Token getOperator()
+    {
+        return operator;
+    }
+
+    public IntTerm getRight()
+    {
+        return rhs;
+    }
+
     public String toString()
     {
-        if (term != null)
+        if (factor != null)
         {
-            return factor.toString() + " " + operator.getValue() + " " + term.toString();
+            return factor.toString();
         }
 
-        return factor.toString();
+        return "(" + lhs.toString() + " " + operator.getValue() + " " + rhs.toString() + ")";
     }
 }

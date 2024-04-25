@@ -4,30 +4,36 @@ import tokenizer.Token;
 
 public class IntExpression
 {
-    private IntExpression expr;
-    private Token operator;
     private IntTerm term;
+    private IntExpression lhs;
+    private Token operator;
+    private IntExpression rhs;
 
     public IntExpression(IntTerm inTerm)
     {
         term = inTerm;
     }
 
-    public IntExpression(IntExpression inExpr, Token inOperator, IntTerm inTerm)
+    public IntExpression(IntExpression left, Token inOperator, IntExpression right)
     {
-        expr = inExpr;
+        lhs = left;
         operator = inOperator;
-        term = inTerm;
+        rhs = right;
     }
 
-    public IntExpression getExpression()
+    public IntExpression getLeft()
     {
-        return expr;
+        return lhs;
     }
 
     public Token getOperator()
     {
         return operator;
+    }
+
+    public IntExpression getRight()
+    {
+        return rhs;
     }
 
     public IntTerm getTerm()
@@ -37,9 +43,9 @@ public class IntExpression
 
     public String toString()
     {
-        if (expr != null)
+        if (term == null)
         {
-            return term.toString() + " " + operator.getValue() + " " + expr.toString();
+            return "(" + lhs.toString() + " " + operator.getValue() + " " + rhs.toString() + ")";
         }
 
         return term.toString();

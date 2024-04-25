@@ -41,7 +41,7 @@ public class AssemblyGenerator implements StatementVisitor {
                 i++;
             }
 
-            System.out.println(identifiers.toString());
+            //System.out.println(identifiers.toString());
 
             return true;
         } 
@@ -84,24 +84,40 @@ public class AssemblyGenerator implements StatementVisitor {
     {
         String a = "";
 
-        a += intTermAssembly(expr.getTerm(), register);
-
-        if (expr.getOperator() != null)
+        // base case: single int term, simply put it into the register
+        if (expr.getTerm() != null)
         {
-            a += "\tpush edx\n";
-            a += intExpressionAssembly(expr.getExpression(), "edx");
-
-            if (expr.getOperator().getType() == TokenType.PLUS)
-            {
-                a += "\tadd " + register + ", edx\n";
-            }
-            else if (expr.getOperator().getType() == TokenType.MINUS)
-            {
-                a += "\tsub " + register + ", edx\n";
-            }
-
-            a += "\tpop edx\n";
+            return intTermAssembly(expr.getTerm(), register);
         }
+
+        // Evaluate left hand side, put into register
+        a += intExpressionAssembly(expr.getLeft(), register);
+
+        // Preserve ecx and register
+        a += "\tpush ecx\n";
+        a += "\tpush " + register + "\n";
+
+        // Evalute right hand side, put into register
+        a += intExpressionAssembly(expr.getRight(), register);
+
+        // Get left hand side off of the stack
+        a += "\tpop ecx\n";
+
+        // Perform operation
+        if (expr.getOperator().getType() == TokenType.PLUS)
+        {
+            a += "\tadd ecx, " + register + "\n";
+        }
+        else if (expr.getOperator().getType() == TokenType.MINUS)
+        {
+            a += "\tsub ecx, " + register + "\n";
+        }
+
+        // Move result into register
+        a += "\tmov " + register + ", ecx\n";
+
+        // Restore original ecx
+        a += "\tpop ecx\n";
 
         return a;
     }
@@ -110,29 +126,65 @@ public class AssemblyGenerator implements StatementVisitor {
     {
         String a = "";
 
-        a += intFactorAssembly(term.getFactor(), register);
-
-        if (term.getOperator() != null)
+        // base case: single int factor, simply move into register
+        if (term.getFactor() != null)
         {
-            if (term.getOperator().getType() == TokenType.TIMES)
-            {
-                a += "\tpush edx\n";
-                a += intTermAssembly(term.getTerm(), "edx");
-                a += "\timul " + register + ", edx\n";
-                a += "\tpop edx\n";
-            }
-            else if (term.getOperator().getType() == TokenType.DIVISION)
-            {
-                a += "\tpush edx\n";
-                a += "\tpush eax\n";
-                a += "\txor edx, edx\n";
-                a += "\tmov eax, " + register + "\n";
-                a += intTermAssembly(term.getTerm(), register);
-                a += "\tidiv " + register + "\n";
-                a += "\tmov " + register + ", eax\n";
-                a += "\tpop eax\n";
-                a += "\tpop edx\n";
-            }
+            return intFactorAssembly(term.getFactor(), register);
+        }
+
+        // Handle multiplication
+        if (term.getOperator().getType() == TokenType.TIMES)
+        {
+            // Evaluate left hand side, put into register
+            a += intTermAssembly(term.getLeft(), register);
+
+            // Preserve edx and register
+            a += "\tpush edx\n";
+            a += "\tpush " + register + "\n";
+
+            // Evaluate right hand side, put into register
+            a += intTermAssembly(term.getRight(), register);
+
+            // Get left hand side off of the stack
+            a += "\tpop edx\n";
+
+            // Perform operation
+            a += "\timul edx, " + register + "\n";
+
+            // Move result into register
+            a += "\tmov " + register + ", edx\n";
+
+            // Restore original edx
+            a += "\tpop edx\n";
+        }
+        else if (term.getOperator().getType() == TokenType.DIVISION)
+        {
+            // Evaluate left hand side, put into register
+            a += intTermAssembly(term.getLeft(), register);
+
+            // preserve eax, edx, and register
+            a += "\tpush eax\n";
+            a += "\tpush edx\n";
+            a += "\tpush " + register + "\n";
+
+            // evaluate right hand side, put into register
+            a += intTermAssembly(term.getRight(), register);
+
+            // get the left hand side off of the stack, put in eax
+            a += "\tpop eax\n";
+
+            // sign extend left hand side
+            a += "\tcdq\n";
+
+            // perform division with register
+            a += "\tidiv " + register + "\n";
+
+            // move result in eax into register 
+            a += "\tmov " + register + ", eax\n";
+
+            // restore eax and edx
+            a += "\tpop edx\n";
+            a += "\tpop eax\n";
         }
 
         return a;
@@ -157,7 +209,7 @@ public class AssemblyGenerator implements StatementVisitor {
 
                 if (offset != -1)
                 {
-                    a += "\tmov " + register + ", [esp + " + offset.toString() + "]\n";
+                    a += "\tmov " + register + ", [ebp - " + offset.toString() + "]\n";
                 }
                 break;
 
@@ -180,6 +232,7 @@ public class AssemblyGenerator implements StatementVisitor {
         a += "section .text\n";
         a += "global _start\n\n";
         a += "_start:\n";
+        a += "\tmov ebp, esp\n";
 
         return a;
     }

@@ -35,6 +35,6 @@ public class IntFactor {
             return token.getValue();
         }
 
-        return "(" + expr.toString() + ")";
+        return expr.toString();
     }
 }

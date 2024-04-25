@@ -142,58 +142,82 @@ public class Parser
 
      private IntExpression parseIntExpression() throws ParseException
      {
+        IntExpression expression;
+        IntExpression rightExpression;
         IntTerm term;
         Token operator;
-        IntExpression expression;
-
+        
         try
         {
             term = parseIntTerm();
-
-            if (peek() != null &&
-                (peek().getType() == TokenType.PLUS || peek().getType() == TokenType.MINUS))
-            {
-                operator = consume();
-                expression = parseIntExpression();
-                return new IntExpression(expression, operator, term);
-            }
-
-            return new IntExpression(term);
+            expression = new IntExpression(term);
         }
         catch (ParseException exception)
         {
             exception.printStackTrace();
+            return null;
         }
 
-        throw new ParseException("Could not parse int expression");
+        while ( peek() != null &&
+            peek().getType() == TokenType.PLUS || peek().getType() == TokenType.MINUS)
+        {
+            operator = consume();
+
+            try
+            {
+                term = parseIntTerm();
+                rightExpression = new IntExpression(term);
+            }
+            catch (ParseException exception)
+            {
+                exception.printStackTrace();
+                return null;
+            }
+
+            expression = new IntExpression(expression, operator, rightExpression);
+        }
+
+        return expression;
      }
 
      private IntTerm parseIntTerm() throws ParseException
      {
         IntFactor factor;
-        Token operator;
         IntTerm term;
+        Token operator;
+        IntTerm right;
 
         try
         {
             factor = parseIntFactor();
-
-            if (peek() != null &&
-                (peek().getType() == TokenType.TIMES || peek().getType() == TokenType.DIVISION))
-            {
-                operator = consume();
-                term = parseIntTerm();
-                return new IntTerm(term, operator, factor);
-            }
-
-            return new IntTerm(factor);
+            term = new IntTerm(factor);
         }
         catch (ParseException exception)
         {
             exception.printStackTrace();
+            return null;
         }
 
-        throw new ParseException("Could not parse int term");
+        while (peek() != null &&
+                (peek().getType() == TokenType.TIMES || peek().getType() == TokenType.DIVISION))
+        {
+            operator = consume();
+
+            try
+            {
+                factor = parseIntFactor();
+                right = new IntTerm(factor);
+            }
+            catch (ParseException exception)
+            {
+                exception.printStackTrace();
+                return null;
+            }
+
+            term = new IntTerm(term, operator, right);
+        }
+
+        return term;
      }
 
      private IntFactor parseIntFactor() throws ParseException
