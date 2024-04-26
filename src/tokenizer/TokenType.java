@@ -2,7 +2,7 @@ package tokenizer;
 
 public enum TokenType 
 {
-    TYPE_INT,
+    TYPE,
     LITERAL_INT,
 
     IDENTIFIER, 

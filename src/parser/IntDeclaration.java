@@ -4,28 +4,18 @@ import tokenizer.Token;
 import codegen.StatementVisitor;
 import codegen.CompileException;
 
-public class IntDeclaration implements Statement 
+public class IntDeclaration extends Declaration
 {
-    private Token identifierToken;
     private IntExpression expression;
 
-    public IntDeclaration(Token identifier, IntExpression expr)
+    public IntDeclaration(Token type, Token identifier, IntExpression expr)
     {
-        identifierToken = identifier;
+        setType(type);
+        setIdentifier(identifier);
         expression = expr;
     }
 
-    public void printStatement()
-    {
-        System.out.println("Int declaration: " + expression.toString());
-    }
-
-    public Token getIdentifier()
-    {
-        return identifierToken;
-    }
-
-    public IntExpression getExpression()
+    public final IntExpression getExpression()
     {
         return expression;
     }
