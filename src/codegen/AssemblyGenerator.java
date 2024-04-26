@@ -25,7 +25,7 @@ public class AssemblyGenerator implements StatementVisitor {
         identifiers = new OffsetTable(4);
     }
 
-    public boolean generateProgram(String outputFile)
+    public boolean generateProgram(String outputFile) throws CompileException
     {
         try (FileWriter writer = new FileWriter(outputFile)) 
         {          
@@ -49,45 +49,70 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             e.printStackTrace();
         }
+        catch (CompileException e)
+        {
+            throw e;
+        }
 
         return false;
     }
 
     public String visit(IntDeclaration stmt) throws CompileException {
-        String a = "";
-        a += intExpressionAssembly( stmt.getExpression(), "ebx" );
-
-        if ( identifiers.addIdentifier(stmt.getIdentifier().getValue() ) )
+        try
         {
-            a += "\tpush ebx\n\n";
-            return a;
+            String a = "";
+            a += intExpressionAssembly( stmt.getExpression(), "ebx" );
+
+            if ( identifiers.addIdentifier(stmt.getIdentifier().getValue() ) )
+            {
+                a += "\tpush ebx\n\n";
+                return a;
+            }
+            
+            throw new CompileException("Identifier '" + stmt.getIdentifier().getValue() + "' already defined");
         }
-        
-        throw new CompileException("Identifier '" + stmt.getIdentifier().getPos() + "' already defined");
+        catch (CompileException exception)
+        {
+            throw exception;
+        }
     }
 
-    public String visit(ExitStatement stmt) {
-        String a = "";
+    public String visit(ExitStatement stmt) throws CompileException {
+        try
+        {
+            String a = "";
 
-        a += "\tmov eax, 1\n";
-        a += intExpressionAssembly(stmt.getExpression(), "ebx");
-        a += "\tint 0x80\n\n";
+            a += "\tmov eax, 1\n";
+            a += intExpressionAssembly(stmt.getExpression(), "ebx");
+            a += "\tint 0x80\n\n";
 
-        return a;
+            return a;
+        }
+        catch (CompileException exception)
+        {
+            throw exception;
+        }
     }
 
     public String visit(Statement stmt) {
         return "";
     }
 
-    private String intExpressionAssembly(IntExpression expr, String register)
+    private String intExpressionAssembly(IntExpression expr, String register) throws CompileException
     {
         String a = "";
 
         // base case: single int term, simply put it into the register
         if (expr.getTerm() != null)
         {
-            return intTermAssembly(expr.getTerm(), register);
+            try
+            {
+                return intTermAssembly(expr.getTerm(), register);
+            }
+            catch (CompileException exception)
+            {
+                throw exception;
+            }
         }
 
         // Evaluate left hand side, put into register
@@ -122,14 +147,21 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }
 
-    private String intTermAssembly(IntTerm term, String register)
+    private String intTermAssembly(IntTerm term, String register) throws CompileException
     {
         String a = "";
 
         // base case: single int factor, simply move into register
         if (term.getFactor() != null)
         {
+            try
+            {
             return intFactorAssembly(term.getFactor(), register);
+            }
+            catch (CompileException exception)
+            {
+                throw exception;
+            }
         }
 
         // Handle multiplication
@@ -199,7 +231,7 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }
 
-    private String intFactorAssembly(IntFactor factor, String register)
+    private String intFactorAssembly(IntFactor factor, String register) throws CompileException
     {
         String a = "";
         Token token = factor.getToken();
@@ -216,10 +248,12 @@ public class AssemblyGenerator implements StatementVisitor {
                 case IDENTIFIER:
                 Integer offset = identifiers.getOffset(token.getValue());
 
-                if (offset != -1)
+                if (offset == -1)
                 {
-                    a += "\tmov " + register + ", [ebp - " + offset.toString() + "]\n";
+                    throw new CompileException("Unknown identifier: '" + token.getValue() + "'");
                 }
+
+                a += "\tmov " + register + ", [ebp - " + offset.toString() + "]\n";
                 break;
 
                 default:

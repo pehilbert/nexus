@@ -30,7 +30,7 @@ public class IntDeclaration implements Statement
         return expression;
     }
 
-    public String accept(StatementVisitor visitor)
+    public String accept(StatementVisitor visitor) throws CompileException
     {
         try
         {
@@ -38,9 +38,7 @@ public class IntDeclaration implements Statement
         }
         catch (CompileException exception)
         {
-            exception.printStackTrace();
+            throw exception;
         }
-
-        return "";
     }
 }

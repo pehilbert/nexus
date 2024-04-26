@@ -1,11 +1,11 @@
 import java.nio.file.Files;
 import java.nio.file.Paths;
-
 import tokenizer.TokenException;
 import tokenizer.Tokenizer;
 
 import parser.Parser;
-
+import parser.ParseException;
+import codegen.CompileException;
 import codegen.Compiler;
 
 import java.io.IOException;
@@ -69,30 +69,52 @@ public class Nexus
 
                 if (verbose)
                 {
+                    System.out.println("Program was successfuly tokenized.");
                     System.out.println("Tokens in program: ");
                     tokenizer.printTokenList();
+                    System.out.println();
                 }
-
-                parser = new Parser(tokenizer.getTokens());   
-                parser.parseProgram();
-
-                if (verbose)
+                
+                try
                 {
-                    System.out.println("Statements in program: ");
-                    parser.printStatements();
-                }
+                    parser = new Parser(tokenizer.getTokens());
+                    parser.parseProgram();
 
-                codeGenerator = new Compiler(parser);
-                codeGenerator.compile(outFilename);
+                    if (verbose)
+                    {
+                        System.out.println("Program was successfully parsed.");
+                        System.out.println("Statements in program: ");
+                        parser.printStatements();
+                        System.out.println();
+                    }
+
+                    try
+                    {
+                        codeGenerator = new Compiler(parser);
+                        codeGenerator.compile(outFilename, verbose);
+                    }
+                    catch (CompileException exception)
+                    {
+                        exception.printStackTrace();
+                        System.exit(1);
+                    }
+                }
+                catch (ParseException exception)
+                {
+                    exception.printStackTrace();
+                    System.exit(1);
+                }
             }
             catch (TokenException exception)
             {
                 exception.printStackTrace();
+                System.exit(1);
             }
         } 
         catch (IOException e) 
         {
             e.printStackTrace();
+            System.exit(1);
         }
 
         System.exit(0);

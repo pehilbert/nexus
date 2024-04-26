@@ -17,7 +17,7 @@ public class Parser
         tokenList = tokens;
     }
 
-     public void parseProgram()
+     public boolean parseProgram() throws ParseException
      {
         program.clear();
         tokenPos = 0;
@@ -25,17 +25,10 @@ public class Parser
 
         while (!exit && tokenPos < tokenList.size())
         {
-            try
-            {
-                program.add( parseStatement() );
-
-            }
-            catch (ParseException exception)
-            {
-                exception.printStackTrace();
-                exit = true;
-            }
+            program.add(parseStatement());
         }
+
+        return !exit;
      }
 
      public void printStatements()
@@ -54,23 +47,30 @@ public class Parser
 
      private Statement parseStatement() throws ParseException
      {
-        if (peek() != null)
+        try
         {
-            switch( peek().getType() )
+            if (peek() != null)
             {
-                case TYPE_INT:
-                return parseIntDeclaration();
-                
-                case EXIT:
-                return parseExitStatement();
+                switch( peek().getType() )
+                {
+                    case TYPE_INT:
+                    return parseIntDeclaration();
+                    
+                    case EXIT:
+                    return parseExitStatement();
 
-                default:
-                throw new ParseException("Expected 'int' or 'exit', instead got " + 
-                                          peek().getValue());
+                    default:
+                    throw new ParseException("Expected 'int' or 'exit', instead got " + 
+                                            peek().getValue(), peek());
+                }
             }
-        }
 
-        return null;
+            throw new ParseException("Expected statement, got EOF");
+        }
+        catch (ParseException exception)
+        {
+            throw exception;
+        }
      }
 
      private IntDeclaration parseIntDeclaration() throws ParseException
@@ -78,49 +78,60 @@ public class Parser
         Token identifierToken;
         IntExpression expression;
 
-        if (peek() != null && consume().getType() == TokenType.TYPE_INT 
-            && peek().getType() == TokenType.IDENTIFIER)
+        try 
         {
-            identifierToken = consume();
-
-            if (peek() != null && peek().getType() == TokenType.EQUALS)
+            if (peek() != null && consume().getType() == TokenType.TYPE_INT) 
             {
-                consume();
-                
-                try
+                if (peek().getType() == TokenType.IDENTIFIER) 
                 {
-                    expression = parseIntExpression();
-                    
-                    if ( peek() != null && peek().getType() == TokenType.SEMICOLON )
+                    identifierToken = consume();
+
+                    if (peek() != null && peek().getType() == TokenType.EQUALS) 
                     {
                         consume();
-                        return new IntDeclaration(identifierToken, expression);
+                        expression = parseIntExpression();
+                        
+                        if ( peek() != null && peek().getType() == TokenType.SEMICOLON ) 
+                        {
+                            consume();
+                            return new IntDeclaration(identifierToken, expression);
+                        } 
+                        else 
+                        {
+                            throw new ParseException("Expected ';', got " + peek().getValue(), peek());
+                        }
+                    } 
+                    else 
+                    {
+                        throw new ParseException("Expected '=', got " + peek().getValue(), peek());
                     }
-
-                    throw new ParseException("Expected ';', got " + peek().getValue());
-                }
-                catch (ParseException exception)
+                } 
+                else 
                 {
-                    exception.printStackTrace();
+                    throw new ParseException("Expected identifier after 'int', got " + peek().getValue(), peek());
                 }
+            } 
+            else 
+            {
+                throw new ParseException("Expected 'int', got " + peek().getValue(), peek());
             }
-
-            throw new ParseException("Expected '=', got " + peek().getValue());
+        } 
+        catch (ParseException exception) 
+        {
+            throw exception;
         }
-        
-        throw new ParseException("Expected 'int', got " + peek().getValue());
      }
 
      private ExitStatement parseExitStatement() throws ParseException
      {
         IntExpression expression;
 
-        if (peek() != null && peek().getType() == TokenType.EXIT)
+        try
         {
-            consume();
-
-            try
+            if (peek() != null && peek().getType() == TokenType.EXIT)
             {
+                consume();
+
                 expression = parseIntExpression();
 
                 if ( peek() != null && peek().getType() == TokenType.SEMICOLON )
@@ -129,15 +140,15 @@ public class Parser
                     return new ExitStatement(expression);
                 }
 
-                throw new ParseException("Expected ';', got " + peek().getValue());
+                throw new ParseException("Expected ';', got " + peek().getValue(), peek());
             }
-            catch (ParseException exception)
-            {
-                exception.printStackTrace();
-            }
-        }
 
-        throw new ParseException("Expected 'exit', got " + peek().getValue());
+            throw new ParseException("Expected 'exit', got " + peek().getValue(), peek());
+        }
+        catch (ParseException exception)
+        {
+            throw exception;
+        }
      }
 
      private IntExpression parseIntExpression() throws ParseException
@@ -151,30 +162,19 @@ public class Parser
         {
             term = parseIntTerm();
             expression = new IntExpression(term);
+            
+            while ( peek() != null &&
+                peek().getType() == TokenType.PLUS || peek().getType() == TokenType.MINUS)
+            {
+                operator = consume();
+                term = parseIntTerm();
+                rightExpression = new IntExpression(term);
+                expression = new IntExpression(expression, operator, rightExpression);
+            }
         }
         catch (ParseException exception)
         {
-            exception.printStackTrace();
-            return null;
-        }
-
-        while ( peek() != null &&
-            peek().getType() == TokenType.PLUS || peek().getType() == TokenType.MINUS)
-        {
-            operator = consume();
-
-            try
-            {
-                term = parseIntTerm();
-                rightExpression = new IntExpression(term);
-            }
-            catch (ParseException exception)
-            {
-                exception.printStackTrace();
-                return null;
-            }
-
-            expression = new IntExpression(expression, operator, rightExpression);
+            throw exception;
         }
 
         return expression;
@@ -191,32 +191,22 @@ public class Parser
         {
             factor = parseIntFactor();
             term = new IntTerm(factor);
+
+            while (peek() != null &&
+                    (peek().getType() == TokenType.TIMES || 
+                    peek().getType() == TokenType.DIVISION ||
+                    peek().getType() == TokenType.MOD))
+            {
+                operator = consume();
+                factor = parseIntFactor();
+                right = new IntTerm(factor);
+
+                term = new IntTerm(term, operator, right);
+            }
         }
         catch (ParseException exception)
         {
-            exception.printStackTrace();
-            return null;
-        }
-
-        while (peek() != null &&
-                (peek().getType() == TokenType.TIMES || 
-                 peek().getType() == TokenType.DIVISION ||
-                 peek().getType() == TokenType.MOD))
-        {
-            operator = consume();
-
-            try
-            {
-                factor = parseIntFactor();
-                right = new IntTerm(factor);
-            }
-            catch (ParseException exception)
-            {
-                exception.printStackTrace();
-                return null;
-            }
-
-            term = new IntTerm(term, operator, right);
+            throw exception;
         }
 
         return term;
@@ -227,45 +217,44 @@ public class Parser
         IntFactor newFactor;
         boolean negative = false;
 
-        if (peek() != null)
+        try
         {
-            if (peek().getType() == TokenType.MINUS)
+            if (peek() != null)
             {
-                negative = true;
-                consume();
-            }
-
-            if (peek().getType() == TokenType.LITERAL_INT ||
-            peek().getType() == TokenType.IDENTIFIER)
-            {
-                return new IntFactor(consume(), negative);
-            }
-            else if (peek().getType() == TokenType.OPEN_PAREN)
-            {
-                consume();
-                
-                try
+                if (peek().getType() == TokenType.MINUS)
                 {
+                    negative = true;
+                    consume();
+                }
+
+                if (peek().getType() == TokenType.LITERAL_INT ||
+                peek().getType() == TokenType.IDENTIFIER)
+                {
+                    return new IntFactor(consume(), negative);
+                }
+                else if (peek().getType() == TokenType.OPEN_PAREN)
+                {
+                    consume();
                     newFactor = new IntFactor(parseIntExpression(), negative);
 
                     if (peek().getType() == TokenType.CLOSE_PAREN)
                     {
-                        consume();
+                           consume();
                         return newFactor;
                     }
-                        
-                    throw new ParseException("Expected ')', got " + peek().getValue());
+                            
+                    throw new ParseException("Expected ')', got " + peek().getValue(), peek());
                 }
-                catch (ParseException exception)
-                {
-                    exception.printStackTrace();
-                }
+
+                throw new ParseException("Expected int literal, identifier, or '(', got " + peek().getValue(), peek());
             }
 
-            throw new ParseException("Expected int literal, identifier, or '(', got " + peek().getValue());
+            throw new ParseException("Expected int factor, got EOF");
         }
-
-        throw new ParseException("Expected int factor, got nothing");
+        catch (ParseException exception)
+        {
+            throw exception;
+        }
      }
 
      private Token peek()

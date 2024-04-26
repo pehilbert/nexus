@@ -7,6 +7,8 @@ public class Tokenizer {
     private List<Token> tokenList = new ArrayList<Token>();
     private String str;
     private int strPos;
+    private int currentLine;
+    private int currentCol;
 
     static final char NULL_CHAR = '\0';
     static final char UNDERSCORE = '_';
@@ -37,6 +39,8 @@ public class Tokenizer {
     {
         tokenList.clear();
         strPos = 0;
+        currentLine = 1;
+        currentCol = 1;
         
         String buffer = "";
         
@@ -156,7 +160,7 @@ public class Tokenizer {
         for (int i = 0; i < tokenList.size(); i++)
         {
             Token token = tokenList.get(i);
-            System.out.println(token.getType() + ", " + token.getValue() + ", " + token.getPos());
+            System.out.println(token.toString());
         }
     }
     
@@ -181,6 +185,17 @@ public class Tokenizer {
         {
             char returnChar = str.charAt(strPos);
             strPos++;
+
+            if (returnChar == ENDLINE)
+            {
+                currentLine++;
+                currentCol = 1;
+            }
+            else
+            {
+                currentCol++;
+            }
+
             return returnChar;
         }
 
@@ -193,51 +208,51 @@ public class Tokenizer {
         switch (test.charAt(0))
         {
             case PLUS:
-            return new Token(TokenType.PLUS, test, strPos - test.length() + 1);
+            return new Token(TokenType.PLUS, test, currentLine, currentCol);
 
             case MINUS:
-            return new Token(TokenType.MINUS, test, strPos - test.length() + 1);
+            return new Token(TokenType.MINUS, test, currentLine, currentCol);
 
             case TIMES:
-            return new Token(TokenType.TIMES, test, strPos - test.length() + 1);
+            return new Token(TokenType.TIMES, test, currentLine, currentCol);
 
             case DIVISION:
-            return new Token(TokenType.DIVISION, test, strPos - test.length() + 1);
+            return new Token(TokenType.DIVISION, test, currentLine, currentCol);
 
             case MOD:
-            return new Token(TokenType.MOD, test, strPos - test.length() + 1);
+            return new Token(TokenType.MOD, test, currentLine, currentCol);
 
             case OPEN_PAREN:
-            return new Token(TokenType.OPEN_PAREN, test, strPos - test.length() + 1);
+            return new Token(TokenType.OPEN_PAREN, test, currentLine, currentCol);
 
             case CLOSE_PAREN:
-            return new Token(TokenType.CLOSE_PAREN, test, strPos - test.length() + 1);
+            return new Token(TokenType.CLOSE_PAREN, test, currentLine, currentCol);
 
             case EQUALS:
-            return new Token(TokenType.EQUALS, test, strPos - test.length() + 1);
+            return new Token(TokenType.EQUALS, test, currentLine, currentCol);
 
             case SEMICOLON:
-            return new Token(TokenType.SEMICOLON, test, strPos - test.length() + 1);
+            return new Token(TokenType.SEMICOLON, test, currentLine, currentCol);
 
             default:
             // Test multi-character strings
             switch (test)
             {
                 case EXIT:
-                return new Token(TokenType.EXIT, test, strPos - test.length() + 1);
+                return new Token(TokenType.EXIT, test, currentLine, currentCol - test.length());
 
                 case TYPE_INT:
-                return new Token(TokenType.TYPE_INT, test, strPos - test.length() + 1);
+                return new Token(TokenType.TYPE_INT, test, currentLine, currentCol - test.length());
 
                 default:
                 if (isIdentifier(test))
                 {
-                    return new Token(TokenType.IDENTIFIER, test, strPos - test.length() + 1);
+                    return new Token(TokenType.IDENTIFIER, test, currentLine, currentCol - test.length());
                 }
 
                 if (isIntLiteral(test))
                 {
-                    return new Token(TokenType.LITERAL_INT, test, strPos - test.length() + 1);
+                    return new Token(TokenType.LITERAL_INT, test, currentLine, currentCol - test.length());
                 }
             }
 
