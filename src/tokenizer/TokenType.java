@@ -12,6 +12,7 @@ public enum TokenType
     MINUS,
     TIMES,
     DIVISION,
+    MOD,
     OPEN_PAREN,
     CLOSE_PAREN,
     EQUALS,

@@ -199,7 +199,9 @@ public class Parser
         }
 
         while (peek() != null &&
-                (peek().getType() == TokenType.TIMES || peek().getType() == TokenType.DIVISION))
+                (peek().getType() == TokenType.TIMES || 
+                 peek().getType() == TokenType.DIVISION ||
+                 peek().getType() == TokenType.MOD))
         {
             operator = consume();
 

@@ -157,7 +157,8 @@ public class AssemblyGenerator implements StatementVisitor {
             // Restore original edx
             a += "\tpop edx\n";
         }
-        else if (term.getOperator().getType() == TokenType.DIVISION)
+        else if (term.getOperator().getType() == TokenType.DIVISION ||
+                 term.getOperator().getType() == TokenType.MOD)
         {
             // Evaluate left hand side, put into register
             a += intTermAssembly(term.getLeft(), register);
@@ -179,8 +180,16 @@ public class AssemblyGenerator implements StatementVisitor {
             // perform division with register
             a += "\tidiv " + register + "\n";
 
-            // move result in eax into register 
-            a += "\tmov " + register + ", eax\n";
+            // quotient in eax, remainder in edx, move one of them into
+            // register depending on operation
+            if (term.getOperator().getType() == TokenType.DIVISION)
+            {
+                a += "\tmov " + register + ", eax\n";
+            }
+            else
+            {
+                a += "\tmov " + register + ", edx\n";
+            }
 
             // restore eax and edx
             a += "\tpop edx\n";

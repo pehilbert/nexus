@@ -15,6 +15,7 @@ public class Tokenizer {
     static final char MINUS = '-';
     static final char TIMES = '*';
     static final char DIVISION = '/';
+    static final char MOD = '%';
     static final char EQUALS = '=';
     static final char OPEN_PAREN = '(';
     static final char CLOSE_PAREN = ')';
@@ -48,6 +49,7 @@ public class Tokenizer {
                 case MINUS:
                 case TIMES:
                 case DIVISION:
+                case MOD:
                 case EQUALS:
                 case OPEN_PAREN:
                 case CLOSE_PAREN:
@@ -201,6 +203,9 @@ public class Tokenizer {
 
             case DIVISION:
             return new Token(TokenType.DIVISION, test, strPos - test.length() + 1);
+
+            case MOD:
+            return new Token(TokenType.MOD, test, strPos - test.length() + 1);
 
             case OPEN_PAREN:
             return new Token(TokenType.OPEN_PAREN, test, strPos - test.length() + 1);
