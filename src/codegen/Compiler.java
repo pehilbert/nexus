@@ -14,16 +14,21 @@ public class Compiler {
         parser = inParser;
     }
 
-    public void compile(String executableFile)
+    public void compile(String executableFile, boolean verbose) throws CompileException
     {
         String sourceFile = executableFile + ".asm";
         String objectFile = executableFile + ".o";
 
         AssemblyGenerator generator = new AssemblyGenerator(parser);
 
-        if (generator.generateProgram(sourceFile))
+        try
         {
-            System.out.println("Successfully wrote assembly code.");
+            generator.generateProgram(sourceFile);
+
+            if (verbose)
+            {
+                System.out.println("Successfully wrote assembly code.");
+            }
 
             // Use ProcessBuilder to run NASM and ld
             ProcessBuilder assembler = new ProcessBuilder("nasm", "-f", "elf32", sourceFile, "-o", objectFile);
@@ -32,17 +37,28 @@ public class Compiler {
             try 
             {
                 // Start and execute the assembler process
-                System.out.println("Assembling the file...");
+                if (verbose)
+                {
+                    System.out.println("Assembling the file...");
+                }
+
                 Process asmProcess = assembler.start();
                 if (asmProcess.waitFor() == 0) 
                 {
-                    System.out.println("Assembly successful. Linking...");
+                    if (verbose)
+                    {
+                        System.out.println("Assembly successful. Linking...");
+                    }
                     
                     // Start and execute the linker process
                     Process linkProcess = linker.start();
                     if (linkProcess.waitFor() == 0) 
                     {
-                        System.out.println("Linking successful.");
+                        if (verbose)
+                        {
+                            System.out.println("Linking successful.");
+                        }
+
                         System.out.println("Executable created: " + executableFile);
                     } 
                     else 
@@ -62,6 +78,10 @@ public class Compiler {
                 e.printStackTrace();
                 Thread.currentThread().interrupt(); // Restore the interrupted status
             }
+        }
+        catch (CompileException exception)
+        {
+            throw exception;
         }
     }
 

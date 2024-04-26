@@ -4,16 +4,17 @@ public class Token
 {
     private TokenType type;
     private String value;
-    private int pos;
+    private int line;
+    private int col;
 
-    public Token(TokenType type, String value, int pos) 
+    public Token(TokenType type, String value, int line, int col) 
     {
         this.type = type;
         this.value = value;
-        this.pos = pos;
+        this.line = line;
+        this.col = col;
     }
 
-    // Getter methods
     public TokenType getType() 
     {
         return type;
@@ -24,8 +25,18 @@ public class Token
         return value;
     }
 
-    public int getPos() 
+    public int getLine() 
     {
-        return pos;
+        return line;
+    }
+
+    public int getCol()
+    {
+        return col;
+    }
+
+    public String toString()
+    {
+        return type + ", " + value + " (line " + line + ", col " + col + ")";
     }
 }
