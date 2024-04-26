@@ -101,9 +101,6 @@ public class Parser
                                 case Tokenizer.TYPE_INT:
                                 IntExpression expression = parseIntExpression();
                                 newDeclaration = new IntDeclaration(typeToken, identifierToken, expression);
-                                System.out.println("Statement parsed: ");
-                                System.out.println(newDeclaration.getType().getValue());
-                                System.out.println(newDeclaration.getIdentifier().getValue());
                                 break;
 
                                 default:

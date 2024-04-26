@@ -13,7 +13,7 @@ public abstract class Declaration implements Statement {
 
     public void setIdentifier(Token identifier)
     {
-        typeToken = identifier;
+        identifierToken = identifier;
     }
 
     public Token getType()
