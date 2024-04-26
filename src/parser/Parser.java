@@ -61,7 +61,7 @@ public class Parser
 
                     default:
                     throw new ParseException("Expected 'int' or 'exit', instead got " + 
-                                            peek().getValue());
+                                            peek().getValue(), peek());
                 }
             }
 
@@ -98,22 +98,22 @@ public class Parser
                         } 
                         else 
                         {
-                            throw new ParseException("Expected ';', got " + peek().getValue());
+                            throw new ParseException("Expected ';', got " + peek().getValue(), peek());
                         }
                     } 
                     else 
                     {
-                        throw new ParseException("Expected '=', got " + peek().getValue());
+                        throw new ParseException("Expected '=', got " + peek().getValue(), peek());
                     }
                 } 
                 else 
                 {
-                    throw new ParseException("Expected identifier after 'int', got " + peek().getValue());
+                    throw new ParseException("Expected identifier after 'int', got " + peek().getValue(), peek());
                 }
             } 
             else 
             {
-                throw new ParseException("Expected 'int', got " + peek().getValue());
+                throw new ParseException("Expected 'int', got " + peek().getValue(), peek());
             }
         } 
         catch (ParseException exception) 
@@ -140,10 +140,10 @@ public class Parser
                     return new ExitStatement(expression);
                 }
 
-                throw new ParseException("Expected ';', got " + peek().getValue());
+                throw new ParseException("Expected ';', got " + peek().getValue(), peek());
             }
 
-            throw new ParseException("Expected 'exit', got " + peek().getValue());
+            throw new ParseException("Expected 'exit', got " + peek().getValue(), peek());
         }
         catch (ParseException exception)
         {
@@ -243,13 +243,13 @@ public class Parser
                         return newFactor;
                     }
                             
-                    throw new ParseException("Expected ')', got " + peek().getValue());
+                    throw new ParseException("Expected ')', got " + peek().getValue(), peek());
                 }
 
-                throw new ParseException("Expected int literal, identifier, or '(', got " + peek().getValue());
+                throw new ParseException("Expected int literal, identifier, or '(', got " + peek().getValue(), peek());
             }
 
-            throw new ParseException("Expected int factor, got nothing");
+            throw new ParseException("Expected int factor, got EOF");
         }
         catch (ParseException exception)
         {
