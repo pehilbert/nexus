@@ -14,15 +14,18 @@ import parser.IntFactor;
 
 import tokenizer.Token;
 import tokenizer.TokenType;
+import tokenizer.Tokenizer;
 
 public class AssemblyGenerator implements StatementVisitor {
     private Parser parser;
-    private OffsetTable identifiers;
+    private VarTable identifiers;
 
     public AssemblyGenerator(Parser inParser)
     {
         parser = inParser;
-        identifiers = new OffsetTable(4);
+        
+        // Create a new variable table with a word size of 4 for the stack
+        identifiers = new VarTable(4);
     }
 
     public boolean generateProgram(String outputFile) throws CompileException
@@ -63,7 +66,7 @@ public class AssemblyGenerator implements StatementVisitor {
             String a = "";
             a += intExpressionAssembly( stmt.getExpression(), "ebx" );
 
-            if ( identifiers.addIdentifier(stmt.getIdentifier().getValue() ) )
+            if ( identifiers.addIdentifier( stmt.getType().getValue(), stmt.getIdentifier().getValue() ) )
             {
                 a += "\tpush ebx\n\n";
                 return a;
@@ -92,10 +95,6 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             throw exception;
         }
-    }
-
-    public String visit(Statement stmt) {
-        return "";
     }
 
     private String intExpressionAssembly(IntExpression expr, String register) throws CompileException
@@ -246,11 +245,17 @@ public class AssemblyGenerator implements StatementVisitor {
                 break;
 
                 case IDENTIFIER:
-                Integer offset = identifiers.getOffset(token.getValue());
+                Integer offset = identifiers.getTrueOffset(token.getValue());
+                String type = identifiers.getIdentifierType(token.getValue());
 
                 if (offset == -1)
                 {
                     throw new CompileException("Unknown identifier: '" + token.getValue() + "'");
+                }
+
+                if (!type.equals(Tokenizer.TYPE_INT))
+                {
+                    throw new CompileException("Expected identifier of type " + Tokenizer.TYPE_INT + ", got " + type);
                 }
 
                 a += "\tmov " + register + ", [ebp - " + offset.toString() + "]\n";
