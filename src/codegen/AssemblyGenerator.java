@@ -11,18 +11,17 @@ import parser.ExitStatement;
 import parser.IntExpression;
 import parser.IntTerm;
 import parser.IntFactor;
-
+import parser.IntReassignment;
 import tokenizer.Token;
 import tokenizer.TokenType;
+import tokenizer.Tokenizer;
 
 public class AssemblyGenerator implements StatementVisitor {
     private Parser parser;
-    private OffsetTable identifiers;
 
     public AssemblyGenerator(Parser inParser)
     {
         parser = inParser;
-        identifiers = new OffsetTable(4);
     }
 
     public boolean generateProgram(String outputFile) throws CompileException
@@ -57,19 +56,14 @@ public class AssemblyGenerator implements StatementVisitor {
         return false;
     }
 
-    public String visit(IntDeclaration stmt) throws CompileException {
+    public String visit(IntDeclaration stmt) throws CompileException 
+    {
         try
         {
             String a = "";
             a += intExpressionAssembly( stmt.getExpression(), "ebx" );
-
-            if ( identifiers.addIdentifier(stmt.getIdentifier().getValue() ) )
-            {
-                a += "\tpush ebx\n\n";
-                return a;
-            }
-            
-            throw new CompileException("Identifier '" + stmt.getIdentifier().getValue() + "' already defined");
+            a += "\tpush ebx\n\n";
+            return a;
         }
         catch (CompileException exception)
         {
@@ -77,7 +71,23 @@ public class AssemblyGenerator implements StatementVisitor {
         }
     }
 
-    public String visit(ExitStatement stmt) throws CompileException {
+    public String visit(IntReassignment stmt) throws CompileException
+    {
+        try
+        {
+            String a = "";
+            a += intExpressionAssembly( stmt.getExpression(), "ebx" );
+            a += "\tmov [ebp - " + parser.getSymbolTable().getTrueOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
+            return a;
+        }
+        catch (CompileException exception)
+        {
+            throw exception;
+        }
+    }
+
+    public String visit(ExitStatement stmt) throws CompileException 
+    {
         try
         {
             String a = "";
@@ -92,10 +102,6 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             throw exception;
         }
-    }
-
-    public String visit(Statement stmt) {
-        return "";
     }
 
     private String intExpressionAssembly(IntExpression expr, String register) throws CompileException
@@ -246,11 +252,17 @@ public class AssemblyGenerator implements StatementVisitor {
                 break;
 
                 case IDENTIFIER:
-                Integer offset = identifiers.getOffset(token.getValue());
+                Integer offset = parser.getSymbolTable().getTrueOffset(token.getValue());
+                String type = parser.getSymbolTable().getIdentifierType(token.getValue());
 
                 if (offset == -1)
                 {
                     throw new CompileException("Unknown identifier: '" + token.getValue() + "'");
+                }
+
+                if (!type.equals(Tokenizer.TYPE_INT))
+                {
+                    throw new CompileException("Expected identifier of type " + Tokenizer.TYPE_INT + ", got " + type);
                 }
 
                 a += "\tmov " + register + ", [ebp - " + offset.toString() + "]\n";

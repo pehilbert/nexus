@@ -5,17 +5,19 @@ import java.util.ArrayList;
 
 import tokenizer.Token;
 import tokenizer.TokenType;
+import tokenizer.Tokenizer;
 
 public class Parser 
 {
      private List<Statement> program = new ArrayList<Statement>();
      private List<Token> tokenList = new ArrayList<Token>();
+     private SymbolTable symbolTable = new SymbolTable(4);
      private int tokenPos;
 
-    public Parser(List<Token> tokens)
-    {
+     public Parser(List<Token> tokens)
+     {
         tokenList = tokens;
-    }
+     }
 
      public boolean parseProgram() throws ParseException
      {
@@ -45,6 +47,11 @@ public class Parser
         return program;
      }
 
+     public SymbolTable getSymbolTable()
+     {
+        return symbolTable;
+     }
+
      private Statement parseStatement() throws ParseException
      {
         try
@@ -53,8 +60,11 @@ public class Parser
             {
                 switch( peek().getType() )
                 {
-                    case TYPE_INT:
-                    return parseIntDeclaration();
+                    case TYPE:
+                    return parseDeclaration();
+
+                    case IDENTIFIER:
+                    return parseReassignment();
                     
                     case EXIT:
                     return parseExitStatement();
@@ -73,50 +83,145 @@ public class Parser
         }
      }
 
-     private IntDeclaration parseIntDeclaration() throws ParseException
+     private Declaration parseDeclaration() throws ParseException
      {
+        Token typeToken;
         Token identifierToken;
-        IntExpression expression;
+        Declaration newDeclaration;
 
         try 
         {
-            if (peek() != null && consume().getType() == TokenType.TYPE_INT) 
+            if (peek() != null) 
             {
-                if (peek().getType() == TokenType.IDENTIFIER) 
+                if (peek().getType() == TokenType.TYPE)
                 {
-                    identifierToken = consume();
+                    typeToken = consume();
 
-                    if (peek() != null && peek().getType() == TokenType.EQUALS) 
+                    if (peek().getType() == TokenType.IDENTIFIER) 
                     {
-                        consume();
-                        expression = parseIntExpression();
-                        
-                        if ( peek() != null && peek().getType() == TokenType.SEMICOLON ) 
+                        identifierToken = consume();
+
+                        if (peek() != null && peek().getType() == TokenType.EQUALS) 
                         {
                             consume();
-                            return new IntDeclaration(identifierToken, expression);
+
+                            switch (typeToken.getValue())
+                            {
+                                case Tokenizer.TYPE_INT:
+                                IntExpression expression = parseIntExpression();
+                                newDeclaration = new IntDeclaration(typeToken, identifierToken, expression);
+                                break;
+
+                                default:
+                                throw new ParseException("Unknown data type: " + typeToken.getValue(), typeToken);
+                            }
+                            
+                            if ( peek() != null && peek().getType() == TokenType.SEMICOLON ) 
+                            {
+                                consume();
+                                
+                                if (!symbolTable.addIdentifier(typeToken.getValue(), identifierToken.getValue()))
+                                {
+                                    throw new ParseException("Identifier '" + identifierToken.getValue() + "' already in use.");
+                                }
+
+                                return newDeclaration;
+                            } 
+                            else 
+                            {
+                                throw new ParseException("Expected ';', got " + peek().getValue(), peek());
+                            }
                         } 
                         else 
                         {
-                            throw new ParseException("Expected ';', got " + peek().getValue(), peek());
+                            throw new ParseException("Expected '=', got " + peek().getValue(), peek());
                         }
                     } 
                     else 
                     {
-                        throw new ParseException("Expected '=', got " + peek().getValue(), peek());
+                        throw new ParseException("Expected identifier after 'int', got " + peek().getValue(), peek());
                     }
-                } 
-                else 
+                }
+                else
                 {
-                    throw new ParseException("Expected identifier after 'int', got " + peek().getValue(), peek());
+                    throw new ParseException("Expected data type, got " + peek().getValue(), peek());
                 }
             } 
             else 
             {
-                throw new ParseException("Expected 'int', got " + peek().getValue(), peek());
+                throw new ParseException("Unexpected EOF");
             }
         } 
         catch (ParseException exception) 
+        {
+            throw exception;
+        }
+     }
+
+     private Reassignment parseReassignment() throws ParseException
+     {
+        Token identifier;
+        String type;
+        Reassignment newReassignment;
+
+        try
+        {
+            if (peek() != null)
+            {
+                if (peek().getType() == TokenType.IDENTIFIER)
+                {
+                    identifier = consume();
+
+                    if (peek().getType() == TokenType.EQUALS)
+                    {
+                        consume();
+
+                        type = symbolTable.getIdentifierType(identifier.getValue());
+
+                        if (type != null)
+                        {
+                            switch (type)
+                            {
+                                case Tokenizer.TYPE_INT:
+                                IntExpression expression = parseIntExpression();
+                                newReassignment = new IntReassignment(identifier, expression);
+                                break;
+
+                                default:
+                                throw new ParseException("Unknown type of identifier '" + identifier.getValue() + "'", identifier);
+                            }
+
+                            if (peek().getType() == TokenType.SEMICOLON)
+                            {
+                                consume();
+                                return newReassignment;
+                            }
+                            else
+                            {
+                                throw new ParseException("Expected ';', got " + peek().getValue(), peek());
+                            }
+                        }
+                        else
+                        {
+                            throw new ParseException("Undeclared variable '" + identifier.getValue() + "'", identifier);
+                        }
+                    }
+                    else
+                    {
+                        throw new ParseException("Expected '=', got " + peek().getValue(), peek());
+                    }
+                }
+                else
+                {
+                    throw new ParseException("Expected identifier, got " + peek().getValue(), peek());
+                }
+            }
+            else
+            {
+                throw new ParseException("Unexpected EOF");
+            }
+        }
+        catch (ParseException exception)
         {
             throw exception;
         }

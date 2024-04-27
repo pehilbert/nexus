@@ -10,25 +10,25 @@ public class Tokenizer {
     private int currentLine;
     private int currentCol;
 
-    static final char NULL_CHAR = '\0';
-    static final char UNDERSCORE = '_';
+    public static final char NULL_CHAR = '\0';
+    public static final char UNDERSCORE = '_';
 
-    static final char PLUS = '+';
-    static final char MINUS = '-';
-    static final char TIMES = '*';
-    static final char DIVISION = '/';
-    static final char MOD = '%';
-    static final char EQUALS = '=';
-    static final char OPEN_PAREN = '(';
-    static final char CLOSE_PAREN = ')';
-    static final char HASHTAG = '#';
-    static final char OPEN_BRACKET = '[';
-    static final char CLOSE_BRACKET = ']';
-    static final char SEMICOLON = ';';
-    static final char ENDLINE = '\n';
+    public static final char PLUS = '+';
+    public static final char MINUS = '-';
+    public static final char TIMES = '*';
+    public static final char DIVISION = '/';
+    public static final char MOD = '%';
+    public static final char EQUALS = '=';
+    public static final char OPEN_PAREN = '(';
+    public static final char CLOSE_PAREN = ')';
+    public static final char HASHTAG = '#';
+    public static final char OPEN_BRACKET = '[';
+    public static final char CLOSE_BRACKET = ']';
+    public static final char SEMICOLON = ';';
+    public static final char ENDLINE = '\n';
 
-    static final String EXIT = "exit";
-    static final String TYPE_INT = "int";
+    public static final String EXIT = "exit";
+    public static final String TYPE_INT = "int";
 
     public Tokenizer(String inStr)
     {
@@ -242,7 +242,7 @@ public class Tokenizer {
                 return new Token(TokenType.EXIT, test, currentLine, currentCol - test.length());
 
                 case TYPE_INT:
-                return new Token(TokenType.TYPE_INT, test, currentLine, currentCol - test.length());
+                return new Token(TokenType.TYPE, test, currentLine, currentCol - test.length());
 
                 default:
                 if (isIdentifier(test))

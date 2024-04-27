@@ -1,16 +1,14 @@
 package parser;
 
-import tokenizer.Token;
-import codegen.StatementVisitor;
 import codegen.CompileException;
+import codegen.StatementVisitor;
+import tokenizer.Token;
 
-public class IntDeclaration extends Declaration
-{
+public class IntReassignment extends Reassignment {
     private IntExpression expression;
 
-    public IntDeclaration(Token type, Token identifier, IntExpression expr)
+    public IntReassignment(Token identifier, IntExpression expr)
     {
-        setType(type);
         setIdentifier(identifier);
         expression = expr;
     }

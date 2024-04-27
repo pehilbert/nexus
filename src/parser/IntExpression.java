@@ -2,7 +2,7 @@ package parser;
 
 import tokenizer.Token;
 
-public class IntExpression
+public class IntExpression implements Expression
 {
     private IntTerm term;
     private IntExpression lhs;
