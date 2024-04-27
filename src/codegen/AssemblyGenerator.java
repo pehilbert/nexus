@@ -73,7 +73,17 @@ public class AssemblyGenerator implements StatementVisitor {
 
     public String visit(IntReassignment stmt) throws CompileException
     {
-        return "";
+        try
+        {
+            String a = "";
+            a += intExpressionAssembly( stmt.getExpression(), "ebx" );
+            a += "\tmov [ebp - " + parser.getSymbolTable().getTrueOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
+            return a;
+        }
+        catch (CompileException exception)
+        {
+            throw exception;
+        }
     }
 
     public String visit(ExitStatement stmt) throws CompileException 
