@@ -11,7 +11,7 @@ import parser.ExitStatement;
 import parser.IntExpression;
 import parser.IntTerm;
 import parser.IntFactor;
-
+import parser.IntReassignment;
 import tokenizer.Token;
 import tokenizer.TokenType;
 import tokenizer.Tokenizer;
@@ -56,7 +56,8 @@ public class AssemblyGenerator implements StatementVisitor {
         return false;
     }
 
-    public String visit(IntDeclaration stmt) throws CompileException {
+    public String visit(IntDeclaration stmt) throws CompileException 
+    {
         try
         {
             String a = "";
@@ -70,7 +71,13 @@ public class AssemblyGenerator implements StatementVisitor {
         }
     }
 
-    public String visit(ExitStatement stmt) throws CompileException {
+    public String visit(IntReassignment stmt) throws CompileException
+    {
+        return "";
+    }
+
+    public String visit(ExitStatement stmt) throws CompileException 
+    {
         try
         {
             String a = "";

@@ -2,7 +2,7 @@ package parser;
 
 import tokenizer.Token;
 
-public abstract class Reassignment {
+public abstract class Reassignment implements Statement {
     private Token identifierToken;
 
     public Token getIdentifier()
@@ -10,5 +10,15 @@ public abstract class Reassignment {
         return identifierToken;
     }
 
+    public void setIdentifier(Token identifier)
+    {
+        identifierToken = identifier;
+    }
+
     public abstract Expression getExpression();
+
+    public void printStatement()
+    {
+        System.out.println(identifierToken.getValue() + " reassigned to " + getExpression().toString());
+    }
 }

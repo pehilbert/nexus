@@ -62,6 +62,9 @@ public class Parser
                 {
                     case TYPE:
                     return parseDeclaration();
+
+                    case IDENTIFIER:
+                    return parseReassignment();
                     
                     case EXIT:
                     return parseExitStatement();
@@ -146,10 +149,79 @@ public class Parser
             } 
             else 
             {
-                throw new ParseException("Expected 'int', got " + peek().getValue(), peek());
+                throw new ParseException("Unexpected EOF");
             }
         } 
         catch (ParseException exception) 
+        {
+            throw exception;
+        }
+     }
+
+     private Reassignment parseReassignment() throws ParseException
+     {
+        Token identifier;
+        String type;
+        Reassignment newReassignment;
+
+        try
+        {
+            if (peek() != null)
+            {
+                if (peek().getType() == TokenType.IDENTIFIER)
+                {
+                    identifier = consume();
+
+                    if (peek().getType() == TokenType.EQUALS)
+                    {
+                        consume();
+
+                        type = symbolTable.getIdentifierType(identifier.getValue());
+
+                        if (type != null)
+                        {
+                            switch (type)
+                            {
+                                case Tokenizer.TYPE_INT:
+                                IntExpression expression = parseIntExpression();
+                                newReassignment = new IntReassignment(identifier, expression);
+                                break;
+
+                                default:
+                                throw new ParseException("Unknown type of identifier '" + identifier.getValue() + "'", identifier);
+                            }
+
+                            if (peek().getType() == TokenType.SEMICOLON)
+                            {
+                                consume();
+                                return newReassignment;
+                            }
+                            else
+                            {
+                                throw new ParseException("Expected ';', got " + peek().getValue(), peek());
+                            }
+                        }
+                        else
+                        {
+                            throw new ParseException("Undeclared variable '" + identifier.getValue() + "'", identifier);
+                        }
+                    }
+                    else
+                    {
+                        throw new ParseException("Expected '=', got " + peek().getValue(), peek());
+                    }
+                }
+                else
+                {
+                    throw new ParseException("Expected identifier, got " + peek().getValue(), peek());
+                }
+            }
+            else
+            {
+                throw new ParseException("Unexpected EOF");
+            }
+        }
+        catch (ParseException exception)
         {
             throw exception;
         }

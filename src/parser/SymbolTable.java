@@ -13,6 +13,11 @@ public class SymbolTable {
         wordSize = inSize;
     }
 
+    public boolean identifierExists(String identifier)
+    {
+        return table.containsKey(identifier);
+    }
+
     public boolean addIdentifier(String type, String identifier)
     {
         if (!table.containsKey(identifier))

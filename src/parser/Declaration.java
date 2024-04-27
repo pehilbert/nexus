@@ -32,5 +32,4 @@ public abstract class Declaration implements Statement {
     {
         System.out.println(typeToken.getValue() + " declaration: " + identifierToken.getValue() + " = " + getExpression().toString());
     }
-
 }
