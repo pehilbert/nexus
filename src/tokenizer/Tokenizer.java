@@ -21,14 +21,19 @@ public class Tokenizer {
     public static final char EQUALS = '=';
     public static final char OPEN_PAREN = '(';
     public static final char CLOSE_PAREN = ')';
+    public static final char SINGLE_QUOTE = '\'';
+    public static final char DOUBLE_QUOTE = '\"';
+    public static final char BACKSLASH = '\\';
     public static final char HASHTAG = '#';
     public static final char OPEN_BRACKET = '[';
     public static final char CLOSE_BRACKET = ']';
     public static final char SEMICOLON = ';';
     public static final char ENDLINE = '\n';
+    public static final char TAB = '\n';
 
     public static final String EXIT = "exit";
     public static final String TYPE_INT = "int";
+    public static final String TYPE_CHAR = "char";
 
     public Tokenizer(String inStr)
     {
@@ -67,6 +72,64 @@ public class Tokenizer {
 
                 // also tokenize the current single-character token
                 tokenList.add(getTokenFromString("" + consume()));
+                break;
+
+                // tokenize character literal
+                case SINGLE_QUOTE:
+                if (buffer.length() > 0)
+                {
+                    tokenList.add(getTokenFromString(buffer));
+                    buffer = "";
+                }
+
+                int quoteLine = currentLine;
+                int quoteCol = currentCol;
+
+                consume();
+                
+                char literalValue = consume();
+                char next = peek();
+
+                // check for escape sequences
+                if (literalValue == BACKSLASH)
+                {
+                    switch (next)
+                    {
+                        case 'n': 
+                        literalValue = ENDLINE;
+                        break;
+
+                        case 't':
+                        literalValue = TAB;
+                        break;
+
+                        case '0':
+                        literalValue = NULL_CHAR;
+                        break;
+
+                        case SINGLE_QUOTE:
+                        case DOUBLE_QUOTE:
+                        case BACKSLASH:
+                        literalValue = next;
+                        break;
+
+                        default:
+                        throw new TokenException("Unknown escape sequence: \\" + next);
+                    }
+
+                    consume();
+                }
+
+                // check for closing quote
+                if (peek() == SINGLE_QUOTE)
+                {
+                    consume();
+                    tokenList.add(new Token(TokenType.LITERAL_CHAR, "" + literalValue, quoteLine, quoteCol));
+                }
+                else
+                {
+                    throw new TokenException("No single quote found to close the one at line " + quoteLine + ", col " + quoteCol);
+                }
                 break;
 
                 // handle comments
@@ -228,6 +291,9 @@ public class Tokenizer {
             case CLOSE_PAREN:
             return new Token(TokenType.CLOSE_PAREN, test, currentLine, currentCol);
 
+            case SINGLE_QUOTE:
+            return new Token(TokenType.SINGLE_QUOTE, test, currentLine, currentCol);
+
             case EQUALS:
             return new Token(TokenType.EQUALS, test, currentLine, currentCol);
 
@@ -242,6 +308,7 @@ public class Tokenizer {
                 return new Token(TokenType.EXIT, test, currentLine, currentCol - test.length());
 
                 case TYPE_INT:
+                case TYPE_CHAR:
                 return new Token(TokenType.TYPE, test, currentLine, currentCol - test.length());
 
                 default:
