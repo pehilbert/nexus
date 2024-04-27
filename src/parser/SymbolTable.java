@@ -5,12 +5,12 @@ import java.util.HashMap;
 
 public class SymbolTable {
     private Map<String, VarInfo> table;
-    private int wordSize;
+    private int totalSize;
 
-    public SymbolTable(int inSize)
+    public SymbolTable()
     {
         table = new HashMap<String, VarInfo>();
-        wordSize = inSize;
+        totalSize = 0;
     }
 
     public boolean identifierExists(String identifier)
@@ -18,12 +18,13 @@ public class SymbolTable {
         return table.containsKey(identifier);
     }
 
-    public boolean addIdentifier(String type, String identifier)
+    public boolean addIdentifier(String type, String identifier, int size)
     {
         if (!table.containsKey(identifier))
         {
-            VarInfo info = new VarInfo(type, wordSize * table.size());
+            VarInfo info = new VarInfo(type, size, size + totalSize);
             table.put(identifier, info);
+            totalSize += size;
             return true;
         }
 
@@ -34,7 +35,7 @@ public class SymbolTable {
     {
         if (table.containsKey(identifier))
         {
-            return table.get(identifier).getOffset() + wordSize;
+            return table.get(identifier).getOffset();
         }
 
         return -1;
