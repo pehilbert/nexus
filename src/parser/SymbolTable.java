@@ -1,13 +1,13 @@
-package codegen;
+package parser;
 
 import java.util.Map;
 import java.util.HashMap;
 
-public class VarTable {
+public class SymbolTable {
     private Map<String, VarInfo> table;
     private int wordSize;
 
-    public VarTable(int inSize)
+    public SymbolTable(int inSize)
     {
         table = new HashMap<String, VarInfo>();
         wordSize = inSize;

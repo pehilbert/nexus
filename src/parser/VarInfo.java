@@ -1,4 +1,4 @@
-package codegen;
+package parser;
 
 public class VarInfo {
     private int offset;

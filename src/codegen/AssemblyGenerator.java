@@ -18,14 +18,10 @@ import tokenizer.Tokenizer;
 
 public class AssemblyGenerator implements StatementVisitor {
     private Parser parser;
-    private VarTable identifiers;
 
     public AssemblyGenerator(Parser inParser)
     {
         parser = inParser;
-        
-        // Create a new variable table with a word size of 4 for the stack
-        identifiers = new VarTable(4);
     }
 
     public boolean generateProgram(String outputFile) throws CompileException
@@ -65,14 +61,8 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             String a = "";
             a += intExpressionAssembly( stmt.getExpression(), "ebx" );
-
-            if ( identifiers.addIdentifier( stmt.getType().getValue(), stmt.getIdentifier().getValue() ) )
-            {
-                a += "\tpush ebx\n\n";
-                return a;
-            }
-            
-            throw new CompileException("Identifier '" + stmt.getIdentifier().getValue() + "' already defined");
+            a += "\tpush ebx\n\n";
+            return a;
         }
         catch (CompileException exception)
         {
@@ -245,8 +235,8 @@ public class AssemblyGenerator implements StatementVisitor {
                 break;
 
                 case IDENTIFIER:
-                Integer offset = identifiers.getTrueOffset(token.getValue());
-                String type = identifiers.getIdentifierType(token.getValue());
+                Integer offset = parser.getSymbolTable().getTrueOffset(token.getValue());
+                String type = parser.getSymbolTable().getIdentifierType(token.getValue());
 
                 if (offset == -1)
                 {

@@ -11,12 +11,13 @@ public class Parser
 {
      private List<Statement> program = new ArrayList<Statement>();
      private List<Token> tokenList = new ArrayList<Token>();
+     private SymbolTable symbolTable = new SymbolTable(4);
      private int tokenPos;
 
-    public Parser(List<Token> tokens)
-    {
+     public Parser(List<Token> tokens)
+     {
         tokenList = tokens;
-    }
+     }
 
      public boolean parseProgram() throws ParseException
      {
@@ -44,6 +45,11 @@ public class Parser
      public List<Statement> getProgram()
      {
         return program;
+     }
+
+     public SymbolTable getSymbolTable()
+     {
+        return symbolTable;
      }
 
      private Statement parseStatement() throws ParseException
@@ -110,6 +116,12 @@ public class Parser
                             if ( peek() != null && peek().getType() == TokenType.SEMICOLON ) 
                             {
                                 consume();
+                                
+                                if (!symbolTable.addIdentifier(typeToken.getValue(), identifierToken.getValue()))
+                                {
+                                    throw new ParseException("Identifier '" + identifierToken.getValue() + "' already in use.");
+                                }
+
                                 return newDeclaration;
                             } 
                             else 
