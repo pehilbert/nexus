@@ -1,13 +1,15 @@
 <program> ::= <statement_list>
 <statement_list> ::= <statement> | <statement> <statement_list>
 <statement> ::= <declaration> | <exit_statement>
-<type_declaration> ::= <type> <identifier> = <type_expression>;
-<exit_statement> ::= exit <expression>;
+<declaration> ::= <type> <identifier> = <expression>;
+<reassignment> ::= <identifier> = <expression>;
+<exit_statement> ::= exit <int_expression>;
 
 <int_expression> ::= <int_term> | <int_expression> ('+' | '-') <int_expression>
 <int_term> ::= <int_factor> | <int_term> ('*' | '/' | '%') <int_term>
-<int_factor> ::= <int_literal> | <identifier> | '(' <int_expression> ')'
+<int_factor> ::= <int_literal> | <char_literal> | <identifier> | '(' <int_expression> ')'
 
 <int_literal> ::= [0-9]+
+<char_literal> ::= '*'
 <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
 <type> ::= int

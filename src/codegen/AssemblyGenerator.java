@@ -251,6 +251,10 @@ public class AssemblyGenerator implements StatementVisitor {
                 a += "\tmov " + register + ", " + token.getValue() + "\n";
                 break;
 
+                case LITERAL_CHAR:
+                a += "\tmov " + register + ", \'" + token.getValue() + "\'\n";
+                break;
+
                 case IDENTIFIER:
                 Integer offset = parser.getSymbolTable().getTrueOffset(token.getValue());
                 String type = parser.getSymbolTable().getIdentifierType(token.getValue());
@@ -260,7 +264,7 @@ public class AssemblyGenerator implements StatementVisitor {
                     throw new CompileException("Unknown identifier: '" + token.getValue() + "'");
                 }
 
-                if (!type.equals(Tokenizer.TYPE_INT))
+                if ( !(type.equals(Tokenizer.TYPE_INT) || type.equals(Tokenizer.TYPE_CHAR)) )
                 {
                     throw new CompileException("Expected identifier of type " + Tokenizer.TYPE_INT + ", got " + type);
                 }

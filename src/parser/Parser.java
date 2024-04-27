@@ -108,6 +108,7 @@ public class Parser
                             switch (typeToken.getValue())
                             {
                                 case Tokenizer.TYPE_INT:
+                                case Tokenizer.TYPE_CHAR:
                                 IntExpression expression = parseIntExpression();
                                 newDeclaration = new IntDeclaration(typeToken, identifierToken, expression);
                                 break;
@@ -183,6 +184,7 @@ public class Parser
                             switch (type)
                             {
                                 case Tokenizer.TYPE_INT:
+                                case Tokenizer.TYPE_CHAR:
                                 IntExpression expression = parseIntExpression();
                                 newReassignment = new IntReassignment(identifier, expression);
                                 break;
@@ -333,7 +335,8 @@ public class Parser
                 }
 
                 if (peek().getType() == TokenType.LITERAL_INT ||
-                peek().getType() == TokenType.IDENTIFIER)
+                    peek().getType() == TokenType.IDENTIFIER ||
+                    peek().getType() == TokenType.LITERAL_CHAR)
                 {
                     return new IntFactor(consume(), negative);
                 }
