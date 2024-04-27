@@ -4,6 +4,7 @@ public enum TokenType
 {
     TYPE,
     LITERAL_INT,
+    LITERAL_CHAR,
 
     IDENTIFIER, 
     EXIT,
@@ -17,4 +18,5 @@ public enum TokenType
     CLOSE_PAREN,
     EQUALS,
     SEMICOLON,
+    SINGLE_QUOTE
 }

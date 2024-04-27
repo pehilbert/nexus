@@ -7,11 +7,13 @@ import java.util.List;
 import parser.Parser;
 import parser.Statement;
 import parser.IntDeclaration;
+import parser.CharDeclaration;
 import parser.ExitStatement;
 import parser.IntExpression;
 import parser.IntTerm;
 import parser.IntFactor;
 import parser.IntReassignment;
+import parser.CharReassignment;
 import tokenizer.Token;
 import tokenizer.TokenType;
 import tokenizer.Tokenizer;
@@ -62,7 +64,24 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             String a = "";
             a += intExpressionAssembly( stmt.getExpression(), "ebx" );
-            a += "\tpush ebx\n\n";
+            a += "\tsub esp, " + Parser.INT_SIZE + "\n";
+            a += "\tmov [esp], ebx\n";
+            return a;
+        }
+        catch (CompileException exception)
+        {
+            throw exception;
+        }
+    }
+
+    public String visit(CharDeclaration stmt) throws CompileException 
+    {
+        try
+        {
+            String a = "";
+            a += intExpressionAssembly( stmt.getExpression(), "ebx" );
+            a += "\tsub esp, " + Parser.CHAR_SIZE + "\n";
+            a += "\tmov [esp], bl\n";
             return a;
         }
         catch (CompileException exception)
@@ -78,6 +97,21 @@ public class AssemblyGenerator implements StatementVisitor {
             String a = "";
             a += intExpressionAssembly( stmt.getExpression(), "ebx" );
             a += "\tmov [ebp - " + parser.getSymbolTable().getTrueOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
+            return a;
+        }
+        catch (CompileException exception)
+        {
+            throw exception;
+        }
+    }
+
+    public String visit(CharReassignment stmt) throws CompileException
+    {
+        try
+        {
+            String a = "";
+            a += intExpressionAssembly( stmt.getExpression(), "ebx" );
+            a += "\tmov [ebp - " + parser.getSymbolTable().getTrueOffset(stmt.getIdentifier().getValue()) + "], bl\n";
             return a;
         }
         catch (CompileException exception)
@@ -251,6 +285,10 @@ public class AssemblyGenerator implements StatementVisitor {
                 a += "\tmov " + register + ", " + token.getValue() + "\n";
                 break;
 
+                case LITERAL_CHAR:
+                a += "\tmov " + register + ", \'" + token.getValue() + "\'\n";
+                break;
+
                 case IDENTIFIER:
                 Integer offset = parser.getSymbolTable().getTrueOffset(token.getValue());
                 String type = parser.getSymbolTable().getIdentifierType(token.getValue());
@@ -260,7 +298,7 @@ public class AssemblyGenerator implements StatementVisitor {
                     throw new CompileException("Unknown identifier: '" + token.getValue() + "'");
                 }
 
-                if (!type.equals(Tokenizer.TYPE_INT))
+                if ( !(type.equals(Tokenizer.TYPE_INT) || type.equals(Tokenizer.TYPE_CHAR)) )
                 {
                     throw new CompileException("Expected identifier of type " + Tokenizer.TYPE_INT + ", got " + type);
                 }

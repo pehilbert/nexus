@@ -11,8 +11,11 @@ public class Parser
 {
      private List<Statement> program = new ArrayList<Statement>();
      private List<Token> tokenList = new ArrayList<Token>();
-     private SymbolTable symbolTable = new SymbolTable(4);
+     private SymbolTable symbolTable = new SymbolTable();
      private int tokenPos;
+
+     public static final int INT_SIZE = 4;
+     public static final int CHAR_SIZE = 1;
 
      public Parser(List<Token> tokens)
      {
@@ -104,12 +107,20 @@ public class Parser
                         if (peek() != null && peek().getType() == TokenType.EQUALS) 
                         {
                             consume();
+                            int newVarSize;
 
                             switch (typeToken.getValue())
                             {
                                 case Tokenizer.TYPE_INT:
-                                IntExpression expression = parseIntExpression();
-                                newDeclaration = new IntDeclaration(typeToken, identifierToken, expression);
+                                IntExpression intExpression = parseIntExpression();
+                                newDeclaration = new IntDeclaration(typeToken, identifierToken, intExpression);
+                                newVarSize = INT_SIZE;
+                                break;
+
+                                case Tokenizer.TYPE_CHAR:
+                                IntExpression charExpression = parseIntExpression();
+                                newDeclaration = new CharDeclaration(typeToken, identifierToken, charExpression);
+                                newVarSize = CHAR_SIZE;
                                 break;
 
                                 default:
@@ -120,7 +131,7 @@ public class Parser
                             {
                                 consume();
                                 
-                                if (!symbolTable.addIdentifier(typeToken.getValue(), identifierToken.getValue()))
+                                if (!symbolTable.addIdentifier(typeToken.getValue(), identifierToken.getValue(), newVarSize))
                                 {
                                     throw new ParseException("Identifier '" + identifierToken.getValue() + "' already in use.");
                                 }
@@ -183,8 +194,13 @@ public class Parser
                             switch (type)
                             {
                                 case Tokenizer.TYPE_INT:
-                                IntExpression expression = parseIntExpression();
-                                newReassignment = new IntReassignment(identifier, expression);
+                                IntExpression intExpression = parseIntExpression();
+                                newReassignment = new IntReassignment(identifier, intExpression);
+                                break;
+
+                                case Tokenizer.TYPE_CHAR:
+                                IntExpression charExpression = parseIntExpression();
+                                newReassignment = new IntReassignment(identifier, charExpression);
                                 break;
 
                                 default:
@@ -333,7 +349,8 @@ public class Parser
                 }
 
                 if (peek().getType() == TokenType.LITERAL_INT ||
-                peek().getType() == TokenType.IDENTIFIER)
+                    peek().getType() == TokenType.IDENTIFIER ||
+                    peek().getType() == TokenType.LITERAL_CHAR)
                 {
                     return new IntFactor(consume(), negative);
                 }
