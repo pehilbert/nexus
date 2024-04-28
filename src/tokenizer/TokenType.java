@@ -9,6 +9,7 @@ public enum TokenType
 
     IDENTIFIER, 
     EXIT,
+    PRINT,
 
     PLUS,
     MINUS,

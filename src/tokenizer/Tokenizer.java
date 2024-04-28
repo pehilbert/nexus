@@ -32,6 +32,7 @@ public class Tokenizer {
     public static final char TAB = '\t';
 
     public static final String EXIT = "exit";
+    public static final String PRINT = "print";
     public static final String TYPE_INT = "int";
     public static final String TYPE_CHAR = "char";
     public static final String TYPE_STRING = "str";
@@ -339,6 +340,9 @@ public class Tokenizer {
             {
                 case EXIT:
                 return new Token(TokenType.EXIT, test, currentLine, currentCol - test.length());
+
+                case PRINT:
+                return new Token(TokenType.PRINT, test, currentLine, currentCol - test.length());
 
                 case TYPE_INT:
                 case TYPE_CHAR:
