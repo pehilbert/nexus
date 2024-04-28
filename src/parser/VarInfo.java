@@ -80,4 +80,23 @@ public class VarInfo {
 
         return -1;
     }
+
+    public String toString()
+    {
+        String s = "";
+
+        if (isPointer)
+        {
+            s += "\nPOINTER\n";
+            s += "Primitive type: " + primitiveDataType;
+            s += ", Unit size: " + unitDataSize;
+            s += ", Total data size: " + totalDataSize; 
+        }
+
+        s += "\nType: " + type;
+        s += ", Offset: " + offset;
+        s += ", Size: " + size + "\n";
+
+        return s;
+    }
 }

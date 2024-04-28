@@ -7,6 +7,7 @@ import java.util.List;
 import parser.Parser;
 import parser.Statement;
 import parser.StringDeclaration;
+import parser.StringReassignment;
 import parser.IntDeclaration;
 import parser.CharDeclaration;
 import parser.ExitStatement;
@@ -92,6 +93,11 @@ public class AssemblyGenerator implements StatementVisitor {
     }
 
     public String visit(StringDeclaration stmt) throws CompileException
+    {
+        return "";
+    }
+
+    public String visit(StringReassignment stmt) throws CompileException
     {
         return "";
     }

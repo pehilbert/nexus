@@ -31,6 +31,16 @@ public class SymbolTable {
         return false;
     }
 
+    public VarInfo getVarInfo(String identifier)
+    {
+        if (table.containsKey(identifier))
+        {
+            return table.get(identifier);
+        }
+
+        return null;
+    }
+
     public int getTrueOffset(String identifier)
     {
         if (table.containsKey(identifier))

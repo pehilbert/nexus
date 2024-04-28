@@ -109,6 +109,8 @@ public class Parser
                         {
                             consume();
                             int newVarSize;
+                            int ptrDataSize = -1;
+                            boolean pointer = false;
 
                             switch (typeToken.getValue())
                             {
@@ -127,7 +129,10 @@ public class Parser
                                 case Tokenizer.TYPE_STRING:
                                 StringExpression strExpression = parseStringExpression();
                                 newDeclaration = new StringDeclaration(typeToken, identifierToken, strExpression);
+
+                                pointer = true;
                                 newVarSize = PTR_SIZE;
+                                ptrDataSize = getStringSize(strExpression);
                                 break;
 
                                 default:
@@ -141,6 +146,24 @@ public class Parser
                                 if (!symbolTable.addIdentifier(typeToken.getValue(), identifierToken.getValue(), newVarSize))
                                 {
                                     throw new ParseException("Identifier '" + identifierToken.getValue() + "' already in use.");
+                                }
+
+                                if (pointer)
+                                {
+                                    if (ptrDataSize != -1)
+                                    {
+                                        VarInfo newInfo = symbolTable.getVarInfo(identifierToken.getValue());
+
+                                        switch (typeToken.getValue())
+                                        {
+                                            case Tokenizer.TYPE_STRING:
+                                            newInfo.makePointer(Tokenizer.TYPE_CHAR, CHAR_SIZE, ptrDataSize);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        throw new ParseException("Could not resolve the data size of the pointer " + identifierToken.getValue(), identifierToken);
+                                    }
                                 }
 
                                 return newDeclaration;
@@ -179,7 +202,7 @@ public class Parser
      private Reassignment parseReassignment() throws ParseException
      {
         Token identifier;
-        String type;
+        VarInfo info;
         Reassignment newReassignment;
 
         try
@@ -194,11 +217,11 @@ public class Parser
                     {
                         consume();
 
-                        type = symbolTable.getIdentifierType(identifier.getValue());
+                        info = symbolTable.getVarInfo(identifier.getValue());
 
-                        if (type != null)
+                        if (info != null)
                         {
-                            switch (type)
+                            switch (info.getType())
                             {
                                 case Tokenizer.TYPE_INT:
                                 IntExpression intExpression = parseIntExpression();
@@ -208,6 +231,11 @@ public class Parser
                                 case Tokenizer.TYPE_CHAR:
                                 IntExpression charExpression = parseIntExpression();
                                 newReassignment = new IntReassignment(identifier, charExpression);
+                                break;
+
+                                case Tokenizer.TYPE_STRING:
+                                StringExpression strExpression = parseStringExpression();
+                                newReassignment = new StringReassignment(identifier, strExpression);
                                 break;
 
                                 default:
@@ -247,6 +275,28 @@ public class Parser
         catch (ParseException exception)
         {
             throw exception;
+        }
+     }
+
+     private int getStringSize(StringExpression strExpression) throws ParseException
+     {
+        switch (strExpression.getToken().getType())
+        {
+            case LITERAL_STR:
+            return strExpression.getToken().getValue().length() + 1;
+
+            case IDENTIFIER:
+            VarInfo otherVarInfo = symbolTable.getVarInfo(strExpression.getToken().getValue());
+
+            if (otherVarInfo != null && otherVarInfo.getType().equals(Tokenizer.TYPE_STRING))
+            {
+                return otherVarInfo.getTotalSize();
+            }
+
+            throw new ParseException("Expected identifier of type str, got one of type " + otherVarInfo.getType(), strExpression.getToken());
+
+            default:
+            throw new ParseException("Invalid token " + strExpression.getToken().getValue() + " at this position.");
         }
      }
 
