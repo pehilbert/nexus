@@ -16,6 +16,7 @@ public class Parser
 
      public static final int INT_SIZE = 4;
      public static final int CHAR_SIZE = 1;
+     public static final int PTR_SIZE = 4;
 
      public Parser(List<Token> tokens)
      {
@@ -121,6 +122,12 @@ public class Parser
                                 IntExpression charExpression = parseIntExpression();
                                 newDeclaration = new CharDeclaration(typeToken, identifierToken, charExpression);
                                 newVarSize = CHAR_SIZE;
+                                break;
+
+                                case Tokenizer.TYPE_STRING:
+                                StringExpression strExpression = parseStringExpression();
+                                newDeclaration = new StringDeclaration(typeToken, identifierToken, strExpression);
+                                newVarSize = PTR_SIZE;
                                 break;
 
                                 default:
@@ -377,6 +384,21 @@ public class Parser
         {
             throw exception;
         }
+     }
+
+     private StringExpression parseStringExpression() throws ParseException
+     {
+        if (peek() != null)
+        {
+            if (peek().getType() == TokenType.LITERAL_STR || peek().getType() == TokenType.IDENTIFIER)
+            {
+                return new StringExpression(consume());
+            }
+
+            throw new ParseException("Expected string literal or identifier, got " + peek().getValue(), peek());
+        }
+
+        throw new ParseException("Expected string literal or identifier, got EOF");
      }
 
      private Token peek()
