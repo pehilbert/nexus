@@ -5,6 +5,7 @@ public enum TokenType
     TYPE,
     LITERAL_INT,
     LITERAL_CHAR,
+    LITERAL_STR,
 
     IDENTIFIER, 
     EXIT,
