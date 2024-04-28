@@ -108,7 +108,7 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             String a = "";
             a += intExpressionAssembly( stmt.getExpression(), "ebx" );
-            a += "\tmov [ebp - " + parser.getSymbolTable().getTrueOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
+            a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
             return a;
         }
         catch (CompileException exception)
@@ -123,7 +123,7 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             String a = "";
             a += intExpressionAssembly( stmt.getExpression(), "ebx" );
-            a += "\tmov [ebp - " + parser.getSymbolTable().getTrueOffset(stmt.getIdentifier().getValue()) + "], bl\n";
+            a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], bl\n";
             return a;
         }
         catch (CompileException exception)
@@ -302,7 +302,7 @@ public class AssemblyGenerator implements StatementVisitor {
                 break;
 
                 case IDENTIFIER:
-                Integer offset = parser.getSymbolTable().getTrueOffset(token.getValue());
+                Integer offset = parser.getSymbolTable().getStackOffset(token.getValue());
                 String type = parser.getSymbolTable().getIdentifierType(token.getValue());
 
                 if (offset == -1)

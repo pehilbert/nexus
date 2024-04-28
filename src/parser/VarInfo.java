@@ -9,6 +9,7 @@ public class VarInfo {
 
     // additional pointer attributes
     private String primitiveDataType;
+    private int dataOffset;
     private int unitDataSize;
     private int totalDataSize;
 
@@ -23,7 +24,7 @@ public class VarInfo {
         totalDataSize = 0;
     }
 
-    public void makePointer(String primitive, int unitSize, int totalSize)
+    public void addPointerInfo(String primitive, int dataOffset, int unitSize, int totalSize)
     {
         isPointer = true;
         primitiveDataType = primitive;
@@ -59,6 +60,16 @@ public class VarInfo {
         }
 
         return null;
+    }
+
+    public int getDataOffset()
+    {
+        if (isPointer())
+        {
+            return dataOffset;
+        }
+
+        return -1;
     }
 
     public int getUnitSize()

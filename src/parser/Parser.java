@@ -152,12 +152,15 @@ public class Parser
                                 {
                                     if (ptrDataSize != -1)
                                     {
-                                        VarInfo newInfo = symbolTable.getVarInfo(identifierToken.getValue());
-
                                         switch (typeToken.getValue())
                                         {
                                             case Tokenizer.TYPE_STRING:
-                                            newInfo.makePointer(Tokenizer.TYPE_CHAR, CHAR_SIZE, ptrDataSize);
+                                            symbolTable.makePointer(identifierToken.getValue(), Tokenizer.TYPE_CHAR, 
+                                                                                                CHAR_SIZE, ptrDataSize);
+                                            break;
+
+                                            default:
+                                            throw new ParseException("Unsupported pointer type: " + typeToken.getValue(), typeToken);
                                         }
                                     }
                                     else
