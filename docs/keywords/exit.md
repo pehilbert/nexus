@@ -4,7 +4,7 @@
 Exits the program with a certain numeric code.
 
 ## Syntax
-```exit <int_expression>;``` will exit the program with the numeric code given by `<int_expression>`.
+```exit <int_expression>;``` will exit the program with the numeric code given by `<int_expression>`. Note that this integer will be interpreted as an **unsigned 8-bit integer.**
 
 ## Example Usage
 ```
