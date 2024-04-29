@@ -259,8 +259,14 @@ public class AssemblyGenerator implements StatementVisitor {
     // Finds the memory location of the string pointed to by an identifier, and puts the result in the given register 
     private String handleIdentifier(StringExpression expr, String register) throws CompileException 
     {
-        int offset = parser.getSymbolTable().getDataOffset(expr.getToken().getValue());
-        return "\tlea " + register + ", [" + PTR_DATA + " + " + offset + "]\n";
+        int offset = parser.getSymbolTable().getStackOffset(expr.getToken().getValue());
+
+        if (offset != -1)
+        {
+            return "\tmov " + register + ", [ebp - " + offset + "]\n";
+        }
+
+        throw new CompileException("Unknown identifier: " + expr.getToken().getValue());
     }
     
     // Handles a string expression, puts the memory location of the resulting string into the given register

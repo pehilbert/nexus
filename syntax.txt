@@ -9,7 +9,12 @@
 <int_term> ::= <int_factor> | <int_term> ('*' | '/' | '%') <int_term>
 <int_factor> ::= <int_literal> | <char_literal> | <identifier> | '(' <int_expression> ')'
 
+<char_expression> ::= <int_expression> | <string_index>
+<str_expression> ::= <str_literal> | <identifier>
+<str_index> ::= <str_expression>'['<int_expression>']'
+
 <int_literal> ::= [0-9]+
 <char_literal> ::= '*'
+<str_literal> ::= '*'
 <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
 <type> ::= int
