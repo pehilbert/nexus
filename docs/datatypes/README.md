@@ -4,3 +4,4 @@ In Nexus, every piece of data has a data type, which describes the kind of data 
 ## Supported data types
 ### [int](./int.md)
 ### [char](./char.md)
+### [str](./str.md)
