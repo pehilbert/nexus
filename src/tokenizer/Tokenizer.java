@@ -29,11 +29,13 @@ public class Tokenizer {
     public static final char CLOSE_BRACKET = ']';
     public static final char SEMICOLON = ';';
     public static final char ENDLINE = '\n';
-    public static final char TAB = '\n';
+    public static final char TAB = '\t';
 
     public static final String EXIT = "exit";
+    public static final String PRINT = "print";
     public static final String TYPE_INT = "int";
     public static final String TYPE_CHAR = "char";
+    public static final String TYPE_STRING = "str";
 
     public Tokenizer(String inStr)
     {
@@ -87,38 +89,7 @@ public class Tokenizer {
 
                 consume();
                 
-                char literalValue = consume();
-                char next = peek();
-
-                // check for escape sequences
-                if (literalValue == BACKSLASH)
-                {
-                    switch (next)
-                    {
-                        case 'n': 
-                        literalValue = ENDLINE;
-                        break;
-
-                        case 't':
-                        literalValue = TAB;
-                        break;
-
-                        case '0':
-                        literalValue = NULL_CHAR;
-                        break;
-
-                        case SINGLE_QUOTE:
-                        case DOUBLE_QUOTE:
-                        case BACKSLASH:
-                        literalValue = next;
-                        break;
-
-                        default:
-                        throw new TokenException("Unknown escape sequence: \\" + next);
-                    }
-
-                    consume();
-                }
+                char literalValue = consumeCharacter();
 
                 // check for closing quote
                 if (peek() == SINGLE_QUOTE)
@@ -130,6 +101,33 @@ public class Tokenizer {
                 {
                     throw new TokenException("No single quote found to close the one at line " + quoteLine + ", col " + quoteCol);
                 }
+                break;
+
+                case DOUBLE_QUOTE:
+                if (buffer.length() > 0)
+                {
+                    tokenList.add(getTokenFromString(buffer));
+                    buffer = "";
+                }
+
+                int dQuoteLine = currentLine;
+                int dQuoteCol = currentCol;
+                String stringLiteral = "";
+
+                consume();
+
+                while (peek() != NULL_CHAR && peek() != DOUBLE_QUOTE)
+                {
+                    stringLiteral += consumeCharacter();
+                }
+
+                if (peek() == NULL_CHAR)
+                {
+                    throw new TokenException("No double quote found to close the one at line " + dQuoteLine + ", col " + dQuoteCol);
+                }
+
+                consume();
+                tokenList.add(new Token(TokenType.LITERAL_STR, "" + stringLiteral, dQuoteLine, dQuoteCol));
                 break;
 
                 // handle comments
@@ -216,6 +214,42 @@ public class Tokenizer {
         }
 
         throw new TokenException("Could not find the end of multi-line comment");
+    }
+
+    public char consumeCharacter() throws TokenException
+    {
+        char literalValue = consume();
+        char next = peek();
+
+        // check for escape sequences
+        if (literalValue == BACKSLASH)
+        {
+            switch (next)
+            {
+                case 'n':
+                consume();
+                return ENDLINE;
+
+                case 't':
+                consume();
+                return TAB;
+
+                case '0':
+                consume();
+                return NULL_CHAR;
+
+                case SINGLE_QUOTE:
+                case DOUBLE_QUOTE:
+                case BACKSLASH:
+                consume();
+                return next;
+
+                default:
+                throw new TokenException("Unknown escape sequence: \\" + next);
+            }
+        }
+
+        return literalValue;
     }
 
     public void printTokenList()
@@ -307,8 +341,12 @@ public class Tokenizer {
                 case EXIT:
                 return new Token(TokenType.EXIT, test, currentLine, currentCol - test.length());
 
+                case PRINT:
+                return new Token(TokenType.PRINT, test, currentLine, currentCol - test.length());
+
                 case TYPE_INT:
                 case TYPE_CHAR:
+                case TYPE_STRING:
                 return new Token(TokenType.TYPE, test, currentLine, currentCol - test.length());
 
                 default:

@@ -86,6 +86,10 @@ public class Nexus
                         System.out.println("Statements in program: ");
                         parser.printStatements();
                         System.out.println();
+
+                        System.out.println("Symbol table:");
+                        System.out.println(parser.getSymbolTable().toString());
+                        System.out.println();
                     }
 
                     try
