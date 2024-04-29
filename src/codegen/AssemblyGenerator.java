@@ -11,6 +11,7 @@ import parser.StringReassignment;
 import parser.IntDeclaration;
 import parser.CharDeclaration;
 import parser.ExitStatement;
+import parser.PrintStatement;
 import parser.IntExpression;
 import parser.StringExpression;
 import parser.IntTerm;
@@ -25,6 +26,8 @@ public class AssemblyGenerator implements StatementVisitor {
     private Parser parser;
 
     static final String PTR_DATA = "pd";
+    static final String BUFFER = "buf";
+    static final int BUFFER_SIZE = 1024;
 
     public AssemblyGenerator(Parser inParser)
     {
@@ -100,8 +103,16 @@ public class AssemblyGenerator implements StatementVisitor {
     {
         try
         {
+            if (!parser.getSymbolTable().identifierExists(stmt.getIdentifier().getValue()))
+            {
+                throw new CompileException("Identifier '" + stmt.getIdentifier().getValue() + "' does not exist.");
+            }
+
+            int dataOffset = parser.getSymbolTable().getDataOffset(stmt.getIdentifier().getValue());
+            String strAddr = PTR_DATA + " + " + dataOffset;
+
             String a = "";
-            a += strExpressionAssembly( stmt.getExpression(), "ebx", parser.getSymbolTable().getDataOffset(stmt.getIdentifier().getValue()) );
+            a += strExpressionAssembly( stmt.getExpression(), "ebx", strAddr);
             a += "\tsub esp, " + Parser.PTR_SIZE + "\n";
             a += "\tmov [esp], ebx\n";
             return a;
@@ -114,7 +125,35 @@ public class AssemblyGenerator implements StatementVisitor {
 
     public String visit(StringReassignment stmt) throws CompileException
     {
-        return "";
+        try
+        {
+            StringExpression expr = stmt.getExpression();
+            Token exprToken = expr.getToken();
+
+            if (exprToken.getType() == TokenType.IDENTIFIER)
+            {
+                String identifierType = parser.getSymbolTable().getIdentifierType(exprToken.getValue());
+                if (identifierType.equals(Tokenizer.TYPE_STRING))
+                {
+                    String a = "";
+                    a += handleIdentifier(expr, "ebx");
+                    a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
+                    return a;
+                }
+                else
+                {
+                    throw new CompileException("Expected identifier of type str, got one of type " + identifierType);
+                }
+            }
+            else
+            {
+                throw new CompileException("Reassignment for strings only supported for string identifiers.");
+            }
+        }
+        catch (CompileException exception)
+        {
+            throw exception;
+        }
     }
 
     public String visit(IntReassignment stmt) throws CompileException
@@ -147,6 +186,44 @@ public class AssemblyGenerator implements StatementVisitor {
         }
     }
 
+    public String visit(PrintStatement stmt) throws CompileException 
+    {
+        StringExpression expr = stmt.getExpression();
+        Token exprToken = expr.getToken();
+        int dataLen;
+
+        String a = "";
+
+        a += "\tmov eax, 4\n";
+        a += "\tmov ebx, 1\n";
+
+        switch (exprToken.getType())
+        {
+            case LITERAL_STR:
+            String str = exprToken.getValue();
+            dataLen = str.length() + 1;
+
+            a += "\tmov edx, " + dataLen + "\n";
+            a += handleStringLiteral(expr, BUFFER);
+            a += "\tmov ecx, " + BUFFER + "\n";
+            a += "\tint 0x80\n";
+            break;
+
+            case IDENTIFIER:
+            dataLen = parser.getSymbolTable().getVarInfo(exprToken.getValue()).getTotalSize();
+
+            a += "\tmov edx, " + dataLen + "\n";
+            a += handleIdentifier(expr, "ecx");
+            a += "\tint 0x80\n";
+            break;
+
+            default:
+            throw new CompileException("'print' not supported for token: '" + exprToken.getValue() + "'");
+        }
+        
+        return a;
+    }
+
     public String visit(ExitStatement stmt) throws CompileException 
     {
         try
@@ -165,38 +242,40 @@ public class AssemblyGenerator implements StatementVisitor {
         }
     }
 
-    // puts the string into memory, moves the address of it into the register
-    private String strExpressionAssembly(StringExpression expr, String register, int dataOffset) throws CompileException
+    // Loads a string literal into the given memory location
+    private String handleStringLiteral(StringExpression expr, String location) throws CompileException 
     {
         String a = "";
-        String str;
-        int i;
-        int otherOffset;
-
-        switch (expr.getToken().getType())
+        String str = expr.getToken().getValue();
+    
+        for (int i = 0; i < str.length(); i++) {
+            a += "\tmov byte [" + location + " + " + i + "], " + (int)str.charAt(i) + "\n";
+        }
+        a += "\tmov byte [" + location + " + " + str.length() + "], 0\n";
+    
+        return a;
+    }  
+    
+    // Finds the memory location of the string pointed to by an identifier, and puts the result in the given register 
+    private String handleIdentifier(StringExpression expr, String register) throws CompileException 
+    {
+        int offset = parser.getSymbolTable().getDataOffset(expr.getToken().getValue());
+        return "\tlea " + register + ", [" + PTR_DATA + " + " + offset + "]\n";
+    }
+    
+    // Handles a string expression, puts the memory location of the resulting string into the given register
+    private String strExpressionAssembly(StringExpression expr, String register, String location) throws CompileException 
+    {
+        String a = "";
+        switch (expr.getToken().getType()) 
         {
             case LITERAL_STR:
-            str = expr.getToken().getValue();
-
-            // for each character in the string, load into memory location with offset
-            for (i = 0; i < str.length(); i++)
-            {
-                a += "\tmov byte [" + PTR_DATA + " + " + (i + dataOffset) + "], " + (int)str.charAt(i) + "\n";
-            }
-
-            // add 0 at the end
-            a += "\tmov byte [" + PTR_DATA + " + " + (i + dataOffset) + "], 0\n";
-
-            // move memory location into register
-            a += "\tlea " + register + ", [" + PTR_DATA + " + " + dataOffset + "]\n";
+            a += handleStringLiteral(expr, location);
+            a += "\tlea " + register + ", [" + location +  "]\n";
             break;
 
             case IDENTIFIER:
-            // find the other string's address
-            otherOffset = parser.getSymbolTable().getDataOffset(expr.getToken().getValue());
-
-            // move the address into the reigster
-            a += "\tlea " + register + ", [" + PTR_DATA + " + " + otherOffset + "]\n";
+            a += handleIdentifier(expr, register);
             break;
 
             default:
@@ -204,7 +283,7 @@ public class AssemblyGenerator implements StatementVisitor {
         }
 
         return a;
-    }
+    }    
 
     private String intExpressionAssembly(IntExpression expr, String register) throws CompileException
     {
@@ -409,6 +488,7 @@ public class AssemblyGenerator implements StatementVisitor {
 
         a += "section .data\n";
         a += PTR_DATA + " db " + parser.getSymbolTable().getAllDataSize() + " dup(0)\n";
+        a += BUFFER + " db " + BUFFER_SIZE + " dup(0)\n";
 
         return a;
     }

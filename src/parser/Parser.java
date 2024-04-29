@@ -70,6 +70,9 @@ public class Parser
                     case IDENTIFIER:
                     return parseReassignment();
                     
+                    case PRINT:
+                    return parsePrintStatement();
+
                     case EXIT:
                     return parseExitStatement();
 
@@ -300,6 +303,35 @@ public class Parser
 
             default:
             throw new ParseException("Invalid token " + strExpression.getToken().getValue() + " at this position.");
+        }
+     }
+
+     private PrintStatement parsePrintStatement() throws ParseException
+     {
+        StringExpression expression;
+
+        try
+        {
+            if (peek() != null && peek().getType() == TokenType.PRINT)
+            {
+                consume();
+
+                expression = parseStringExpression();
+
+                if ( peek() != null && peek().getType() == TokenType.SEMICOLON )
+                {
+                    consume();
+                    return new PrintStatement(expression);
+                }
+
+                throw new ParseException("Expected ';', got " + peek().getValue(), peek());
+            }
+
+            throw new ParseException("Expected 'print', got " + peek().getValue(), peek());
+        }
+        catch (ParseException exception)
+        {
+            throw exception;
         }
      }
 

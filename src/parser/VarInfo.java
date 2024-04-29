@@ -24,10 +24,11 @@ public class VarInfo {
         totalDataSize = 0;
     }
 
-    public void addPointerInfo(String primitive, int dataOffset, int unitSize, int totalSize)
+    public void addPointerInfo(String primitive, int offset, int unitSize, int totalSize)
     {
         isPointer = true;
         primitiveDataType = primitive;
+        dataOffset = offset;
         unitDataSize = unitSize;
         totalDataSize = totalSize;
     }
@@ -102,6 +103,7 @@ public class VarInfo {
             s += "Primitive type: " + primitiveDataType;
             s += ", Unit size: " + unitDataSize;
             s += ", Total data size: " + totalDataSize; 
+            s += ", Data offset: " + dataOffset;
         }
 
         s += "\nType: " + type;
