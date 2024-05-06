@@ -4,6 +4,7 @@ public enum TokenType
 {
     TYPE,
     LITERAL_INT,
+    LITERAL_FLOAT,
     LITERAL_CHAR,
     LITERAL_STR,
 
