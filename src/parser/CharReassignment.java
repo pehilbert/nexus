@@ -5,15 +5,15 @@ import codegen.StatementVisitor;
 import tokenizer.Token;
 
 public class CharReassignment extends Reassignment {
-    private IntExpression expression;
+    private NumExpression expression;
 
-    public CharReassignment(Token identifier, IntExpression expr)
+    public CharReassignment(Token identifier, NumExpression expr)
     {
         setIdentifier(identifier);
         expression = expr;
     }
 
-    public final IntExpression getExpression()
+    public final NumExpression getExpression()
     {
         return expression;
     }

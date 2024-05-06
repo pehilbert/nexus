@@ -118,16 +118,32 @@ public class Parser
                             switch (typeToken.getValue())
                             {
                                 case Tokenizer.TYPE_INT:
-                                IntExpression intExpression = parseIntExpression();
-                                newDeclaration = new IntDeclaration(typeToken, identifierToken, intExpression);
-                                newVarSize = INT_SIZE;
-                                break;
+                                NumExpression intExpression = parseNumExpression();
+
+                                if (!intExpression.isFloat())
+                                {
+                                    newDeclaration = new IntDeclaration(typeToken, identifierToken, intExpression);
+                                    newVarSize = INT_SIZE;
+                                    break;
+                                }
+                                else
+                                {
+                                    throw new ParseException("Number expression must be an int value", typeToken);
+                                }
 
                                 case Tokenizer.TYPE_CHAR:
-                                IntExpression charExpression = parseIntExpression();
-                                newDeclaration = new CharDeclaration(typeToken, identifierToken, charExpression);
-                                newVarSize = CHAR_SIZE;
-                                break;
+                                NumExpression charExpression = parseNumExpression();
+
+                                if (!charExpression.isFloat())
+                                {
+                                    newDeclaration = new CharDeclaration(typeToken, identifierToken, charExpression);
+                                    newVarSize = CHAR_SIZE;
+                                    break;
+                                }
+                                else
+                                {
+                                    throw new ParseException("Number expression must be an int value", typeToken);
+                                }
 
                                 case Tokenizer.TYPE_STRING:
                                 StringExpression strExpression = parseStringExpression();
@@ -230,14 +246,30 @@ public class Parser
                             switch (info.getType())
                             {
                                 case Tokenizer.TYPE_INT:
-                                IntExpression intExpression = parseIntExpression();
-                                newReassignment = new IntReassignment(identifier, intExpression);
-                                break;
+                                NumExpression intExpression = parseNumExpression();
+
+                                if (!intExpression.isFloat())
+                                {
+                                    newReassignment = new IntReassignment(identifier, intExpression);
+                                    break;
+                                }
+                                else
+                                {
+                                    throw new ParseException("Number expression must be an int value", identifier);
+                                }
 
                                 case Tokenizer.TYPE_CHAR:
-                                IntExpression charExpression = parseIntExpression();
-                                newReassignment = new IntReassignment(identifier, charExpression);
-                                break;
+                                NumExpression charExpression = parseNumExpression();
+
+                                if (!charExpression.isFloat())
+                                {
+                                    newReassignment = new IntReassignment(identifier, charExpression);
+                                    break;
+                                }
+                                else
+                                {
+                                    throw new ParseException("Number expression must be an int value", identifier);
+                                }
 
                                 case Tokenizer.TYPE_STRING:
                                 StringExpression strExpression = parseStringExpression();
@@ -337,7 +369,7 @@ public class Parser
 
      private ExitStatement parseExitStatement() throws ParseException
      {
-        IntExpression expression;
+        NumExpression expression;
 
         try
         {
@@ -345,7 +377,7 @@ public class Parser
             {
                 consume();
 
-                expression = parseIntExpression();
+                expression = parseNumExpression();
 
                 if ( peek() != null && peek().getType() == TokenType.SEMICOLON )
                 {
@@ -364,25 +396,25 @@ public class Parser
         }
      }
 
-     private IntExpression parseIntExpression() throws ParseException
+     private NumExpression parseNumExpression() throws ParseException
      {
-        IntExpression expression;
-        IntExpression rightExpression;
-        IntTerm term;
+        NumExpression expression;
+        NumExpression rightExpression;
+        NumTerm term;
         Token operator;
         
         try
         {
-            term = parseIntTerm();
-            expression = new IntExpression(term);
+            term = parseNumTerm();
+            expression = new NumExpression(term);
             
             while ( peek() != null &&
                 peek().getType() == TokenType.PLUS || peek().getType() == TokenType.MINUS)
             {
                 operator = consume();
-                term = parseIntTerm();
-                rightExpression = new IntExpression(term);
-                expression = new IntExpression(expression, operator, rightExpression);
+                term = parseNumTerm();
+                rightExpression = new NumExpression(term);
+                expression = new NumExpression(expression, operator, rightExpression);
             }
         }
         catch (ParseException exception)
@@ -393,17 +425,17 @@ public class Parser
         return expression;
      }
 
-     private IntTerm parseIntTerm() throws ParseException
+     private NumTerm parseNumTerm() throws ParseException
      {
-        IntFactor factor;
-        IntTerm term;
+        NumFactor factor;
+        NumTerm term;
         Token operator;
-        IntTerm right;
+        NumTerm right;
 
         try
         {
-            factor = parseIntFactor();
-            term = new IntTerm(factor);
+            factor = parseNumFactor();
+            term = new NumTerm(factor);
 
             while (peek() != null &&
                     (peek().getType() == TokenType.TIMES || 
@@ -411,10 +443,10 @@ public class Parser
                     peek().getType() == TokenType.MOD))
             {
                 operator = consume();
-                factor = parseIntFactor();
-                right = new IntTerm(factor);
+                factor = parseNumFactor();
+                right = new NumTerm(factor);
 
-                term = new IntTerm(term, operator, right);
+                term = new NumTerm(term, operator, right);
             }
         }
         catch (ParseException exception)
@@ -425,9 +457,9 @@ public class Parser
         return term;
      }
 
-     private IntFactor parseIntFactor() throws ParseException
+     private NumFactor parseNumFactor() throws ParseException
      {
-        IntFactor newFactor;
+        NumFactor newFactor;
         boolean negative = false;
 
         try
@@ -441,15 +473,40 @@ public class Parser
                 }
 
                 if (peek().getType() == TokenType.LITERAL_INT ||
+                    peek().getType() == TokenType.LITERAL_FLOAT ||
                     peek().getType() == TokenType.IDENTIFIER ||
                     peek().getType() == TokenType.LITERAL_CHAR)
                 {
-                    return new IntFactor(consume(), negative);
+                    newFactor = new NumFactor(consume(), negative);
+
+                    switch (newFactor.getToken().getType())
+                    {
+                        case LITERAL_FLOAT:
+                        newFactor.setFloat(true);
+                        break;
+
+                        case IDENTIFIER:
+                        String identifierStr = newFactor.getToken().getValue();
+
+                        if (symbolTable.identifierExists(identifierStr))
+                        {
+                            newFactor.setFloat(symbolTable.getIdentifierType(identifierStr) == Tokenizer.TYPE_FLOAT);
+                            break;
+                        }
+                        else
+                        {
+                            throw new ParseException("Identifier '" + identifierStr + "' already exists", newFactor.getToken());
+                        }
+
+                        default:
+                        newFactor.setFloat(false);
+                        break;
+                    }
                 }
                 else if (peek().getType() == TokenType.OPEN_PAREN)
                 {
                     consume();
-                    newFactor = new IntFactor(parseIntExpression(), negative);
+                    newFactor = new NumFactor(parseNumExpression(), negative);
 
                     if (peek().getType() == TokenType.CLOSE_PAREN)
                     {

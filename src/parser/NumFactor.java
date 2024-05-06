@@ -2,23 +2,26 @@ package parser;
 
 import tokenizer.Token;
 
-public class IntFactor {
+public class NumFactor {
     private Token token;
-    private IntExpression expr;
+    private NumExpression expr;
     private boolean negative;
+    private boolean floatExpr;
 
-    public IntFactor(Token inToken, boolean neg)
+    public NumFactor(Token inToken, boolean neg)
     {
         token = inToken;
         expr = null;
         negative = neg;
+        floatExpr = false;
     }
 
-    public IntFactor(IntExpression inExpr, boolean neg)
+    public NumFactor(NumExpression inExpr, boolean neg)
     {
         expr = inExpr;
         token = null;
         negative = neg;
+        floatExpr = inExpr.isFloat();
     }
 
     public Token getToken()
@@ -26,7 +29,7 @@ public class IntFactor {
         return token;
     }
 
-    public IntExpression getExpression()
+    public NumExpression getExpression()
     {
         return expr;
     }
@@ -34,6 +37,16 @@ public class IntFactor {
     public boolean isNegative()
     {
         return negative;
+    }
+
+    public void setFloat(boolean inBool)
+    {
+        floatExpr = inBool;
+    }
+
+    public boolean isFloat()
+    {
+        return floatExpr;
     }
 
     public String toString()

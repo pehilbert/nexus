@@ -12,10 +12,10 @@ import parser.IntDeclaration;
 import parser.CharDeclaration;
 import parser.ExitStatement;
 import parser.PrintStatement;
-import parser.IntExpression;
+import parser.NumExpression;
 import parser.StringExpression;
-import parser.IntTerm;
-import parser.IntFactor;
+import parser.NumTerm;
+import parser.NumFactor;
 import parser.IntReassignment;
 import parser.CharReassignment;
 import tokenizer.Token;
@@ -291,7 +291,7 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }    
 
-    private String intExpressionAssembly(IntExpression expr, String register) throws CompileException
+    private String intExpressionAssembly(NumExpression expr, String register) throws CompileException
     {
         String a = "";
 
@@ -340,7 +340,7 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }
 
-    private String intTermAssembly(IntTerm term, String register) throws CompileException
+    private String intTermAssembly(NumTerm term, String register) throws CompileException
     {
         String a = "";
 
@@ -424,11 +424,11 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }
 
-    private String intFactorAssembly(IntFactor factor, String register) throws CompileException
+    private String intFactorAssembly(NumFactor factor, String register) throws CompileException
     {
         String a = "";
         Token token = factor.getToken();
-        IntExpression expr = factor.getExpression();
+        NumExpression expr = factor.getExpression();
 
         if (token != null)
         {
