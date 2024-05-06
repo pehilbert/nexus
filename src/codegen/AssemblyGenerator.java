@@ -8,7 +8,7 @@ import parser.Parser;
 import parser.Statement;
 import parser.StringDeclaration;
 import parser.StringReassignment;
-import parser.IntDeclaration;
+import parser.NumDeclaration;
 import parser.CharDeclaration;
 import parser.ExitStatement;
 import parser.PrintStatement;
@@ -16,7 +16,7 @@ import parser.NumExpression;
 import parser.StringExpression;
 import parser.NumTerm;
 import parser.NumFactor;
-import parser.IntReassignment;
+import parser.NumReassignment;
 import parser.CharReassignment;
 import tokenizer.Token;
 import tokenizer.TokenType;
@@ -67,7 +67,7 @@ public class AssemblyGenerator implements StatementVisitor {
         return false;
     }
 
-    public String visit(IntDeclaration stmt) throws CompileException 
+    public String visit(NumDeclaration stmt) throws CompileException 
     {
         try
         {
@@ -156,7 +156,7 @@ public class AssemblyGenerator implements StatementVisitor {
         }
     }
 
-    public String visit(IntReassignment stmt) throws CompileException
+    public String visit(NumReassignment stmt) throws CompileException
     {
         try
         {

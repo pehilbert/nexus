@@ -51,7 +51,7 @@ public class NumExpression implements Expression
 
     public String toString()
     {
-        String floatPrefix = "Float = " + Boolean.toString(floatExpr) + " | ";
+        String floatPrefix = "(Float = " + Boolean.toString(floatExpr) + ") ";
 
         if (term == null)
         {

@@ -15,6 +15,7 @@ public class Parser
      private int tokenPos;
 
      public static final int INT_SIZE = 4;
+     public static final int FLOAT_SIZE = 4;
      public static final int CHAR_SIZE = 1;
      public static final int PTR_SIZE = 4;
 
@@ -122,7 +123,7 @@ public class Parser
 
                                 if (!intExpression.isFloat())
                                 {
-                                    newDeclaration = new IntDeclaration(typeToken, identifierToken, intExpression);
+                                    newDeclaration = new NumDeclaration(typeToken, identifierToken, intExpression);
                                     newVarSize = INT_SIZE;
                                     break;
                                 }
@@ -130,6 +131,12 @@ public class Parser
                                 {
                                     throw new ParseException("Number expression must be an int value", typeToken);
                                 }
+
+                                case Tokenizer.TYPE_FLOAT:
+                                NumExpression floatExpression = parseNumExpression();
+                                newDeclaration = new NumDeclaration(typeToken, identifierToken, floatExpression);
+                                newVarSize = FLOAT_SIZE;
+                                break;
 
                                 case Tokenizer.TYPE_CHAR:
                                 NumExpression charExpression = parseNumExpression();
@@ -250,7 +257,7 @@ public class Parser
 
                                 if (!intExpression.isFloat())
                                 {
-                                    newReassignment = new IntReassignment(identifier, intExpression);
+                                    newReassignment = new NumReassignment(identifier, intExpression);
                                     break;
                                 }
                                 else
@@ -258,12 +265,17 @@ public class Parser
                                     throw new ParseException("Number expression must be an int value", identifier);
                                 }
 
+                                case Tokenizer.TYPE_FLOAT:
+                                NumExpression floatExpression = parseNumExpression();
+                                newReassignment = new NumReassignment(identifier, floatExpression);
+                                break;
+
                                 case Tokenizer.TYPE_CHAR:
                                 NumExpression charExpression = parseNumExpression();
 
                                 if (!charExpression.isFloat())
                                 {
-                                    newReassignment = new IntReassignment(identifier, charExpression);
+                                    newReassignment = new NumReassignment(identifier, charExpression);
                                     break;
                                 }
                                 else
@@ -378,6 +390,11 @@ public class Parser
                 consume();
 
                 expression = parseNumExpression();
+
+                if (expression.isFloat())
+                {
+                    throw new ParseException("Exit code must be an int value");
+                }
 
                 if ( peek() != null && peek().getType() == TokenType.SEMICOLON )
                 {
@@ -502,6 +519,8 @@ public class Parser
                         newFactor.setFloat(false);
                         break;
                     }
+
+                    return newFactor;
                 }
                 else if (peek().getType() == TokenType.OPEN_PAREN)
                 {
@@ -517,7 +536,7 @@ public class Parser
                     throw new ParseException("Expected ')', got " + peek().getValue(), peek());
                 }
 
-                throw new ParseException("Expected int literal, identifier, or '(', got " + peek().getValue(), peek());
+                throw new ParseException("Expected literal, identifier, or '(', got " + peek().getValue(), peek());
             }
 
             throw new ParseException("Expected int factor, got EOF");
