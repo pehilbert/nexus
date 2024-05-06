@@ -72,7 +72,7 @@ public class AssemblyGenerator implements StatementVisitor {
         try
         {
             String a = "";
-            a += intExpressionAssembly( stmt.getExpression(), "ebx" );
+            a += numExpressionAssembly( stmt.getExpression(), "ebx" );
             a += "\tsub esp, " + Parser.INT_SIZE + "\n";
             a += "\tmov [esp], ebx\n";
             return a;
@@ -88,7 +88,7 @@ public class AssemblyGenerator implements StatementVisitor {
         try
         {
             String a = "";
-            a += intExpressionAssembly( stmt.getExpression(), "ebx" );
+            a += numExpressionAssembly( stmt.getExpression(), "ebx" );
             a += "\tsub esp, " + Parser.CHAR_SIZE + "\n";
             a += "\tmov [esp], bl\n";
             return a;
@@ -161,7 +161,7 @@ public class AssemblyGenerator implements StatementVisitor {
         try
         {
             String a = "";
-            a += intExpressionAssembly( stmt.getExpression(), "ebx" );
+            a += numExpressionAssembly( stmt.getExpression(), "ebx" );
             a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
             return a;
         }
@@ -176,7 +176,7 @@ public class AssemblyGenerator implements StatementVisitor {
         try
         {
             String a = "";
-            a += intExpressionAssembly( stmt.getExpression(), "ebx" );
+            a += numExpressionAssembly( stmt.getExpression(), "ebx" );
             a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], bl\n";
             return a;
         }
@@ -231,7 +231,7 @@ public class AssemblyGenerator implements StatementVisitor {
             String a = "";
 
             a += "\tmov eax, 1\n";
-            a += intExpressionAssembly(stmt.getExpression(), "ebx");
+            a += numExpressionAssembly(stmt.getExpression(), "ebx");
             a += "\tint 0x80\n\n";
 
             return a;
@@ -291,7 +291,7 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }    
 
-    private String intExpressionAssembly(NumExpression expr, String register) throws CompileException
+    private String numExpressionAssembly(NumExpression expr, String register) throws CompileException
     {
         String a = "";
 
@@ -300,7 +300,7 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             try
             {
-                return intTermAssembly(expr.getTerm(), register);
+                return numTermAssembly(expr.getTerm(), register);
             }
             catch (CompileException exception)
             {
@@ -309,14 +309,14 @@ public class AssemblyGenerator implements StatementVisitor {
         }
 
         // Evaluate left hand side, put into register
-        a += intExpressionAssembly(expr.getLeft(), register);
+        a += numExpressionAssembly(expr.getLeft(), register);
 
         // Preserve ecx and register
         a += "\tpush ecx\n";
         a += "\tpush " + register + "\n";
 
         // Evalute right hand side, put into register
-        a += intExpressionAssembly(expr.getRight(), register);
+        a += numExpressionAssembly(expr.getRight(), register);
 
         // Get left hand side off of the stack
         a += "\tpop ecx\n";
@@ -340,7 +340,7 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }
 
-    private String intTermAssembly(NumTerm term, String register) throws CompileException
+    private String numTermAssembly(NumTerm term, String register) throws CompileException
     {
         String a = "";
 
@@ -349,7 +349,7 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             try
             {
-            return intFactorAssembly(term.getFactor(), register);
+                return numFactorAssembly(term.getFactor(), register);
             }
             catch (CompileException exception)
             {
@@ -361,14 +361,14 @@ public class AssemblyGenerator implements StatementVisitor {
         if (term.getOperator().getType() == TokenType.TIMES)
         {
             // Evaluate left hand side, put into register
-            a += intTermAssembly(term.getLeft(), register);
+            a += numTermAssembly(term.getLeft(), register);
 
             // Preserve edx and register
             a += "\tpush edx\n";
             a += "\tpush " + register + "\n";
 
             // Evaluate right hand side, put into register
-            a += intTermAssembly(term.getRight(), register);
+            a += numTermAssembly(term.getRight(), register);
 
             // Get left hand side off of the stack
             a += "\tpop edx\n";
@@ -382,11 +382,11 @@ public class AssemblyGenerator implements StatementVisitor {
             // Restore original edx
             a += "\tpop edx\n";
         }
-        else if (term.getOperator().getType() == TokenType.DIVISION ||
-                 term.getOperator().getType() == TokenType.MOD)
+        else if ( (term.getOperator().getType() == TokenType.DIVISION ||
+                 term.getOperator().getType() == TokenType.MOD) && !term.isFloat())
         {
             // Evaluate left hand side, put into register
-            a += intTermAssembly(term.getLeft(), register);
+            a += numTermAssembly(term.getLeft(), register);
 
             // preserve eax, edx, and register
             a += "\tpush eax\n";
@@ -394,7 +394,7 @@ public class AssemblyGenerator implements StatementVisitor {
             a += "\tpush " + register + "\n";
 
             // evaluate right hand side, put into register
-            a += intTermAssembly(term.getRight(), register);
+            a += numTermAssembly(term.getRight(), register);
 
             // get the left hand side off of the stack, put in eax
             a += "\tpop eax\n";
@@ -420,11 +420,15 @@ public class AssemblyGenerator implements StatementVisitor {
             a += "\tpop edx\n";
             a += "\tpop eax\n";
         }
+        else if (term.getOperator().getType() == TokenType.DIVISION && term.isFloat())
+        {
+            
+        }
 
         return a;
     }
 
-    private String intFactorAssembly(NumFactor factor, String register) throws CompileException
+    private String numFactorAssembly(NumFactor factor, String register) throws CompileException
     {
         String a = "";
         Token token = factor.getToken();
@@ -465,7 +469,7 @@ public class AssemblyGenerator implements StatementVisitor {
         }
         else
         {
-            a += intExpressionAssembly(expr, register);
+            a += numExpressionAssembly(expr, register);
         }
 
         if (factor.isNegative())
