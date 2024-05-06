@@ -507,7 +507,7 @@ public class Parser
 
                         if (symbolTable.identifierExists(identifierStr))
                         {
-                            newFactor.setFloat(symbolTable.getIdentifierType(identifierStr) == Tokenizer.TYPE_FLOAT);
+                            newFactor.setFloat(symbolTable.getIdentifierType(identifierStr).equals(Tokenizer.TYPE_FLOAT));
                             break;
                         }
                         else
