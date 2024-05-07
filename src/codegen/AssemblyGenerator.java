@@ -24,14 +24,17 @@ import tokenizer.Tokenizer;
 
 public class AssemblyGenerator implements StatementVisitor {
     private Parser parser;
+    private int labelCount;
 
     static final String PTR_DATA = "pd";
     static final String BUFFER = "buf";
+    static final String FLOAT_NEG_MASK = "nmask";
     static final int BUFFER_SIZE = 1024;
 
     public AssemblyGenerator(Parser inParser)
     {
         parser = inParser;
+        labelCount = 0;
     }
 
     public boolean generateProgram(String outputFile) throws CompileException
@@ -72,9 +75,18 @@ public class AssemblyGenerator implements StatementVisitor {
         try
         {
             String a = "";
-            a += numExpressionAssembly( stmt.getExpression(), "ebx" );
-            a += "\tsub esp, " + Parser.INT_SIZE + "\n";
-            a += "\tmov [esp], ebx\n";
+            if (stmt.getExpression().isFloat())
+            {
+                a += numExpressionAssembly( stmt.getExpression(), "xmm0", true );
+                a += "\tsub esp, " + Parser.FLOAT_SIZE + "\n";
+                a += "\tmovss [esp], xmm0\n";
+            }
+            else
+            {
+                a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
+                a += "\tsub esp, " + Parser.INT_SIZE + "\n";
+                a += "\tmov [esp], ebx\n";
+            }
             return a;
         }
         catch (CompileException exception)
@@ -88,7 +100,7 @@ public class AssemblyGenerator implements StatementVisitor {
         try
         {
             String a = "";
-            a += numExpressionAssembly( stmt.getExpression(), "ebx" );
+            a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
             a += "\tsub esp, " + Parser.CHAR_SIZE + "\n";
             a += "\tmov [esp], bl\n";
             return a;
@@ -161,8 +173,17 @@ public class AssemblyGenerator implements StatementVisitor {
         try
         {
             String a = "";
-            a += numExpressionAssembly( stmt.getExpression(), "ebx" );
-            a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
+            if (stmt.getExpression().isFloat())
+            {
+                a += numExpressionAssembly(stmt.getExpression(), "xmm0", true);
+                a += a += "\tmovss [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], xmm0\n";
+            }
+            else
+            {
+                a += numExpressionAssembly(stmt.getExpression(), "ebx", false);
+                a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
+            }
+
             return a;
         }
         catch (CompileException exception)
@@ -176,7 +197,7 @@ public class AssemblyGenerator implements StatementVisitor {
         try
         {
             String a = "";
-            a += numExpressionAssembly( stmt.getExpression(), "ebx" );
+            a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
             a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], bl\n";
             return a;
         }
@@ -231,7 +252,7 @@ public class AssemblyGenerator implements StatementVisitor {
             String a = "";
 
             a += "\tmov eax, 1\n";
-            a += numExpressionAssembly(stmt.getExpression(), "ebx");
+            a += numExpressionAssembly(stmt.getExpression(), "ebx", false);
             a += "\tint 0x80\n\n";
 
             return a;
@@ -291,144 +312,202 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }    
 
-    private String numExpressionAssembly(NumExpression expr, String register) throws CompileException
+    private String numExpressionAssembly(NumExpression expr, String register, boolean floatMode) throws CompileException
     {
         String a = "";
 
         // base case: single int term, simply put it into the register
         if (expr.getTerm() != null)
         {
-            try
-            {
-                return numTermAssembly(expr.getTerm(), register);
-            }
-            catch (CompileException exception)
-            {
-                throw exception;
-            }
+            return numTermAssembly(expr.getTerm(), register, floatMode);
         }
 
-        // Evaluate left hand side, put into register
-        a += numExpressionAssembly(expr.getLeft(), register);
-
-        // Preserve ecx and register
-        a += "\tpush ecx\n";
-        a += "\tpush " + register + "\n";
-
-        // Evalute right hand side, put into register
-        a += numExpressionAssembly(expr.getRight(), register);
-
-        // Get left hand side off of the stack
-        a += "\tpop ecx\n";
-
-        // Perform operation
-        if (expr.getOperator().getType() == TokenType.PLUS)
+        if (floatMode)
         {
-            a += "\tadd ecx, " + register + "\n";
+            // evaluate left hand side, put into register
+            a += numExpressionAssembly(expr.getLeft(), register, floatMode);
+
+            // preserve xmm8 and register
+            a += "\tsub esp, 4\n";
+            a += "\tmovss [esp], xmm8\n";
+            a += "\tsub esp, 4\n";
+            a += "\tmovss [esp], " + register + "\n";
+
+            // evaluate right hand side, put into register
+            a += numExpressionAssembly(expr.getRight(), register, floatMode);
+
+            // get the left hand side off the stack, and into xmm8
+            a += "\tmovss xmm8, [esp]\n";
+            a += "\tadd esp, 4\n";
+
+            // perform operation with xmm8 and register
+            if (expr.getOperator().getType() == TokenType.PLUS)
+            {
+                a += "\taddss xmm8, " + register + "\n";
+            }
+            else if (expr.getOperator().getType() == TokenType.MINUS)
+            {
+                a += "\tsubss xmm8, " + register + "\n";
+            }
+
+            // move result into register
+            a += "\tmovss " + register + ", xmm8\n";
+
+            // restore original xmm8
+            a += "\tmovss xmm8, [esp]\n";
+            a += "\tadd esp, 4\n";
         }
-        else if (expr.getOperator().getType() == TokenType.MINUS)
+        else
         {
-            a += "\tsub ecx, " + register + "\n";
+            // Evaluate left hand side, put into register
+            a += numExpressionAssembly(expr.getLeft(), register, floatMode);
+
+            // Preserve ecx and register
+            a += "\tpush ecx\n";
+            a += "\tpush " + register + "\n";
+
+            // Evalute right hand side, put into register
+            a += numExpressionAssembly(expr.getRight(), register, floatMode);
+
+            // Get left hand side off of the stack
+            a += "\tpop ecx\n";
+
+            // Perform operation
+            if (expr.getOperator().getType() == TokenType.PLUS)
+            {
+                a += "\tadd ecx, " + register + "\n";
+            }
+            else if (expr.getOperator().getType() == TokenType.MINUS)
+            {
+                a += "\tsub ecx, " + register + "\n";
+            }
+
+            // Move result into register
+            a += "\tmov " + register + ", ecx\n";
+
+            // Restore original ecx
+            a += "\tpop ecx\n";
         }
-
-        // Move result into register
-        a += "\tmov " + register + ", ecx\n";
-
-        // Restore original ecx
-        a += "\tpop ecx\n";
 
         return a;
     }
 
-    private String numTermAssembly(NumTerm term, String register) throws CompileException
+    private String numTermAssembly(NumTerm term, String register, boolean floatMode) throws CompileException
     {
         String a = "";
 
         // base case: single int factor, simply move into register
         if (term.getFactor() != null)
         {
-            try
-            {
-                return numFactorAssembly(term.getFactor(), register);
-            }
-            catch (CompileException exception)
-            {
-                throw exception;
-            }
+            return numFactorAssembly(term.getFactor(), register, floatMode);
         }
 
-        // Handle multiplication
-        if (term.getOperator().getType() == TokenType.TIMES)
+        if (floatMode)
         {
-            // Evaluate left hand side, put into register
-            a += numTermAssembly(term.getLeft(), register);
+            // evaluate left hand side, put into register
+            a += numTermAssembly(term.getLeft(), register, floatMode);
 
-            // Preserve edx and register
-            a += "\tpush edx\n";
-            a += "\tpush " + register + "\n";
-
-            // Evaluate right hand side, put into register
-            a += numTermAssembly(term.getRight(), register);
-
-            // Get left hand side off of the stack
-            a += "\tpop edx\n";
-
-            // Perform operation
-            a += "\timul edx, " + register + "\n";
-
-            // Move result into register
-            a += "\tmov " + register + ", edx\n";
-
-            // Restore original edx
-            a += "\tpop edx\n";
-        }
-        else if ( (term.getOperator().getType() == TokenType.DIVISION ||
-                 term.getOperator().getType() == TokenType.MOD) && !term.isFloat())
-        {
-            // Evaluate left hand side, put into register
-            a += numTermAssembly(term.getLeft(), register);
-
-            // preserve eax, edx, and register
-            a += "\tpush eax\n";
-            a += "\tpush edx\n";
-            a += "\tpush " + register + "\n";
+            // preserve xmm9 and register
+            a += "\tsub esp, 4\n";
+            a += "\tmovss [esp], xmm9\n";
+            a += "\tsub esp, 4\n";
+            a += "\tmovss [esp], " + register + "\n";
 
             // evaluate right hand side, put into register
-            a += numTermAssembly(term.getRight(), register);
+            a += numTermAssembly(term.getRight(), register, floatMode);
 
-            // get the left hand side off of the stack, put in eax
-            a += "\tpop eax\n";
+            // get the left hand side off the stack, and into xmm9
+            a += "\tmovss xmm9, [esp]\n";
+            a += "\tadd esp, 4\n";
 
-            // sign extend left hand side
-            a += "\tcdq\n";
-
-            // perform division with register
-            a += "\tidiv " + register + "\n";
-
-            // quotient in eax, remainder in edx, move one of them into
-            // register depending on operation
-            if (term.getOperator().getType() == TokenType.DIVISION)
+            // perform operation with xmm9 and register
+            if (term.getOperator().getType() == TokenType.TIMES)
             {
-                a += "\tmov " + register + ", eax\n";
+                a += "\tmulss xmm9, " + register + "\n";
             }
-            else
+            else if (term.getOperator().getType() == TokenType.DIVISION)
             {
-                a += "\tmov " + register + ", edx\n";
+                a += "\tdivss xmm9, " + register + "\n";
             }
 
-            // restore eax and edx
-            a += "\tpop edx\n";
-            a += "\tpop eax\n";
+            // move result into register
+            a += "\tmovss " + register + ", xmm9\n";
+
+            // restore original xmm9
+            a += "\tmovss xmm9, [esp]\n";
+            a += "\tadd esp, 4\n";
         }
-        else if (term.getOperator().getType() == TokenType.DIVISION && term.isFloat())
+        else
         {
-            
+            // Handle multiplication
+            if (term.getOperator().getType() == TokenType.TIMES)
+            {
+                // Evaluate left hand side, put into register
+                a += numTermAssembly(term.getLeft(), register, floatMode);
+
+                // Preserve edx and register
+                a += "\tpush edx\n";
+                a += "\tpush " + register + "\n";
+
+                // Evaluate right hand side, put into register
+                a += numTermAssembly(term.getRight(), register, floatMode);
+
+                // Get left hand side off of the stack
+                a += "\tpop edx\n";
+
+                // Perform operation
+                a += "\timul edx, " + register + "\n";
+
+                // Move result into register
+                a += "\tmov " + register + ", edx\n";
+
+                // Restore original edx
+                a += "\tpop edx\n";
+            }
+            else if ( (term.getOperator().getType() == TokenType.DIVISION ||
+                    term.getOperator().getType() == TokenType.MOD) )
+            {
+                // Evaluate left hand side, put into register
+                a += numTermAssembly(term.getLeft(), register, floatMode);
+
+                // preserve eax, edx, and register
+                a += "\tpush eax\n";
+                a += "\tpush edx\n";
+                a += "\tpush " + register + "\n";
+
+                // evaluate right hand side, put into register
+                a += numTermAssembly(term.getRight(), register, floatMode);
+
+                // get the left hand side off of the stack, put in eax
+                a += "\tpop eax\n";
+
+                // sign extend left hand side
+                a += "\tcdq\n";
+
+                // perform division with register
+                a += "\tidiv " + register + "\n";
+
+                // quotient in eax, remainder in edx, move one of them into
+                // register depending on operation
+                if (term.getOperator().getType() == TokenType.DIVISION)
+                {
+                    a += "\tmov " + register + ", eax\n";
+                }
+                else
+                {
+                    a += "\tmov " + register + ", edx\n";
+                }
+
+                // restore eax and edx
+                a += "\tpop edx\n";
+                a += "\tpop eax\n";
+            }
         }
 
         return a;
     }
 
-    private String numFactorAssembly(NumFactor factor, String register) throws CompileException
+    private String numFactorAssembly(NumFactor factor, String register, boolean floatMode) throws CompileException
     {
         String a = "";
         Token token = factor.getToken();
@@ -436,15 +515,47 @@ public class AssemblyGenerator implements StatementVisitor {
 
         if (token != null)
         {
+            String valueToConvert;
+
             switch (token.getType())
             {
+                // set the literal value with the appropriate syntax
                 case LITERAL_INT:
-                a += "\tmov " + register + ", " + token.getValue() + "\n";
+                valueToConvert = token.getValue();
+
+                if (floatMode)
+                {
+                    a += handleConversion(valueToConvert, register);
+                }
+                else
+                {
+                    a += "\tmov " + register + ", " + valueToConvert + "\n";
+                }
                 break;
 
                 case LITERAL_CHAR:
-                a += "\tmov " + register + ", \'" + token.getValue() + "\'\n";
+                valueToConvert = "\'" + token.getValue() + "\'";
+
+                if (floatMode)
+                {
+                    a += handleConversion(valueToConvert, register);
+                }
+                else
+                {
+                    a += "\tmov " + register + ", " + valueToConvert + "\n";
+                }
                 break;
+
+                case LITERAL_FLOAT:
+                if (floatMode)
+                {
+                    // Use macro to load float literal into register
+                    a += "\tLFL " + register + ", " + token.getValue() + ", " + Integer.toString(labelCount) + "\n";
+                    labelCount++;
+                    break;
+                }
+
+                throw new CompileException("Attempt to use a float literal in integer expression");
 
                 case IDENTIFIER:
                 Integer offset = parser.getSymbolTable().getStackOffset(token.getValue());
@@ -455,12 +566,32 @@ public class AssemblyGenerator implements StatementVisitor {
                     throw new CompileException("Unknown identifier: '" + token.getValue() + "'");
                 }
 
-                if ( !(type.equals(Tokenizer.TYPE_INT) || type.equals(Tokenizer.TYPE_CHAR)) )
+                if (floatMode)
                 {
-                    throw new CompileException("Expected identifier of type " + Tokenizer.TYPE_INT + ", got " + type);
+                    if ( type.equals(Tokenizer.TYPE_INT) || type.equals(Tokenizer.TYPE_CHAR) )
+                    {
+                        valueToConvert = "[ebp - " + offset.toString() + "]";
+                        a += handleConversion(valueToConvert, register);
+                    }
+                    else if (type.equals(Tokenizer.TYPE_FLOAT))
+                    {
+                        a += "\tmovss " + register + ", [ebp - " + offset.toString() + "]\n";
+                    }
+                    else
+                    {
+                        throw new CompileException("Expected identifier for number, got one for type " + type);
+                    }
+                }
+                else
+                {
+                    if ( !(type.equals(Tokenizer.TYPE_INT) || type.equals(Tokenizer.TYPE_CHAR)) )
+                    {
+                        throw new CompileException("Expected identifier for an integer or character, got one for type " + type);
+                    }
+
+                    a += "\tmov " + register + ", [ebp - " + offset.toString() + "]\n";
                 }
 
-                a += "\tmov " + register + ", [ebp - " + offset.toString() + "]\n";
                 break;
 
                 default:
@@ -469,13 +600,41 @@ public class AssemblyGenerator implements StatementVisitor {
         }
         else
         {
-            a += numExpressionAssembly(expr, register);
+            a += numExpressionAssembly(expr, register, floatMode);
         }
 
-        if (factor.isNegative())
+        if (factor.isNegative()) 
         {
-            a += "\tneg " + register + "\n";
+            if (floatMode) 
+            {
+                a += "\tmovss xmm1, [" + FLOAT_NEG_MASK + "]\n";
+                a += "\txorps " + register + ", xmm1\n";
+            } 
+            else 
+            {
+                a += "\tneg " + register + "\n";
+            }
         }
+
+        return a;
+    }
+
+    private String handleConversion(String value, String register)
+    {
+        String a = "";
+
+        // We need to convert ints to floats
+
+        // preserve eax first, in case it's being used
+        a += "\tpush eax\n";
+
+        // Perform the conversion
+        a += "\tmov eax, " + value + "\n";
+        a += "\tmovd " + register + ", eax\n";                  
+        a += "\tcvtsi2ss " + register + ", " + register + "\n";
+
+        // put eax back
+        a += "\tpop eax\n";
 
         return a;
     }
@@ -483,6 +642,13 @@ public class AssemblyGenerator implements StatementVisitor {
     private String generatePreamble()
     {
         String a = "";
+
+        a += "%macro LFL 3\n";
+        a += "\tsection .data\n";
+        a += "\tfloat%3 dd %2\n";
+        a += "\tsection .text\n";
+        a += "\tmovss %1, [temp]\n";
+        a += "%endmacro\n\n";
 
         a += "section .text\n";
         a += "global _start\n\n";
@@ -499,6 +665,7 @@ public class AssemblyGenerator implements StatementVisitor {
         a += "section .data\n";
         a += PTR_DATA + " db " + parser.getSymbolTable().getAllDataSize() + " dup(0)\n";
         a += BUFFER + " db " + BUFFER_SIZE + " dup(0)\n";
+        a += FLOAT_NEG_MASK + " dd 0x80000000\n";
 
         return a;
     }
