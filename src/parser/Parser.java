@@ -499,6 +499,7 @@ public class Parser
                     switch (newFactor.getToken().getType())
                     {
                         case LITERAL_FLOAT:
+                        litTable.addLiteralWithType(newFactor.getToken().getValue(), Tokenizer.TYPE_FLOAT);
                         newFactor.setFloat(true);
                         break;
 

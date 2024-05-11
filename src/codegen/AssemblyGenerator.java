@@ -25,7 +25,6 @@ import tokenizer.Tokenizer;
 
 public class AssemblyGenerator implements StatementVisitor {
     private Parser parser;
-    private int labelCount;
 
     static final String STR_SIZE_MD = "strSize";
     static final String PTR_DATA = "pd";
@@ -36,7 +35,6 @@ public class AssemblyGenerator implements StatementVisitor {
     public AssemblyGenerator(Parser inParser)
     {
         parser = inParser;
-        labelCount = 0;
     }
 
     public boolean generateProgram(String outputFile) throws CompileException
@@ -555,8 +553,7 @@ public class AssemblyGenerator implements StatementVisitor {
                 if (floatMode)
                 {
                     // Use macro to load float literal into register
-                    a += "\tLFL " + register + ", " + token.getValue() + ", " + Integer.toString(labelCount) + "\n";
-                    labelCount++;
+                    a += "\tmovss " + register + ", [" + parser.getLitTable().getLiteralLabel(token.getValue()) + "]\n";
                     break;
                 }
 
@@ -647,13 +644,6 @@ public class AssemblyGenerator implements StatementVisitor {
     {
         String a = "";
 
-        a += "%macro LFL 3\n";
-        a += "\tsection .data\n";
-        a += "\tfloat%3 dd %2\n";
-        a += "\tsection .text\n";
-        a += "\tmovss %1, [float%3]\n";
-        a += "%endmacro\n\n";
-
         a += "section .text\n";
         a += "global _start\n\n";
         a += "_start:\n";
@@ -682,6 +672,10 @@ public class AssemblyGenerator implements StatementVisitor {
                 a += label + " db " + stringToAsmLiteral(current) + "\n";
                 break;
 
+                case Tokenizer.TYPE_FLOAT:
+                a += label + " dd " + current + "\n";
+                break;
+
                 default:
                 throw new CompileException("Unknown literal type: " + type);
             }
@@ -691,7 +685,7 @@ public class AssemblyGenerator implements StatementVisitor {
         }
 
         a += PTR_DATA + " db " + parser.getSymbolTable().getAllDataSize() + " dup(0)\n";
-        a += BUFFER + " db " + BUFFER_SIZE + " dup(0)\n";
+        // a += BUFFER + " db " + BUFFER_SIZE + " dup(0)\n";
         a += FLOAT_NEG_MASK + " dd 0x80000000\n";
 
         return a;
