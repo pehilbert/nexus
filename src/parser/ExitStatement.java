@@ -5,9 +5,9 @@ import codegen.StatementVisitor;
 
 public class ExitStatement implements Statement 
 {
-    IntExpression expression;
+    NumExpression expression;
 
-    public ExitStatement(IntExpression expr)
+    public ExitStatement(NumExpression expr)
     {
         expression = expr;
     }
@@ -17,7 +17,7 @@ public class ExitStatement implements Statement
         System.out.println("Exit statement: " + expression.toString());
     }
 
-    public IntExpression getExpression()
+    public NumExpression getExpression()
     {
         return expression;
     }

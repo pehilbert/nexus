@@ -2,35 +2,38 @@ package parser;
 
 import tokenizer.Token;
 
-public class IntTerm
+public class NumTerm
 {
-    private IntFactor factor;
-    private IntTerm lhs;
+    private NumFactor factor;
+    private NumTerm lhs;
     private Token operator;
-    private IntTerm rhs;
+    private NumTerm rhs;
+    private boolean floatExpr;
 
-    public IntTerm(IntTerm left, Token inOperator, IntTerm right)
+    public NumTerm(NumTerm left, Token inOperator, NumTerm right)
     {
         lhs = left;
         operator = inOperator;
         rhs = right;
         factor = null;
+        floatExpr = left.isFloat() || right.isFloat();
     }
 
-    public IntTerm(IntFactor inFactor)
+    public NumTerm(NumFactor inFactor)
     {
         factor = inFactor;
         lhs = null;
         operator = null;
         rhs = null;
+        floatExpr = factor.isFloat();
     }
 
-    public IntFactor getFactor()
+    public NumFactor getFactor()
     {
         return factor;
     }
 
-    public IntTerm getLeft()
+    public NumTerm getLeft()
     {
         return lhs;
     }
@@ -40,9 +43,14 @@ public class IntTerm
         return operator;
     }
 
-    public IntTerm getRight()
+    public NumTerm getRight()
     {
         return rhs;
+    }
+
+    public boolean isFloat()
+    {
+        return floatExpr;
     }
 
     public String toString()

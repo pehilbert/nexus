@@ -3,18 +3,18 @@
 <statement> ::= <declaration> | <exit_statement>
 <declaration> ::= <type> <identifier> = <expression>;
 <reassignment> ::= <identifier> = <expression>;
-<exit_statement> ::= exit <int_expression>;
+<exit_statement> ::= exit <num_expression>;
 
-<int_expression> ::= <int_term> | <int_expression> ('+' | '-') <int_expression>
-<int_term> ::= <int_factor> | <int_term> ('*' | '/' | '%') <int_term>
-<int_factor> ::= <int_literal> | <char_literal> | <identifier> | '(' <int_expression> ')'
+<num_expression> ::= <num_term> | <num_expression> ('+' | '-') <num_expression>
+<num_term> ::= <num_factor> | <num_term> ('*' | '/' | '%') <num_term>
+<num_factor> ::= <num_literal> | <char_literal> | <identifier> | '(' <num_expression> ')'
 
-<char_expression> ::= <int_expression> | <string_index>
+<char_expression> ::= <num_expression> | <string_index>
 <str_expression> ::= <str_literal> | <identifier>
-<str_index> ::= <str_expression>'['<int_expression>']'
+<str_index> ::= <str_expression>'['<num_expression>']'
 
-<int_literal> ::= [0-9]+
+<num_literal> ::= [0-9]+
 <char_literal> ::= '*'
 <str_literal> ::= '*'
 <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
-<type> ::= int
+<type> ::= int | float | string

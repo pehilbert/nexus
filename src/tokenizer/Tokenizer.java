@@ -18,6 +18,7 @@ public class Tokenizer {
     public static final char TIMES = '*';
     public static final char DIVISION = '/';
     public static final char MOD = '%';
+    public static final char DOT = '.';
     public static final char EQUALS = '=';
     public static final char OPEN_PAREN = '(';
     public static final char CLOSE_PAREN = ')';
@@ -34,6 +35,7 @@ public class Tokenizer {
     public static final String EXIT = "exit";
     public static final String PRINT = "print";
     public static final String TYPE_INT = "int";
+    public static final String TYPE_FLOAT = "float";
     public static final String TYPE_CHAR = "char";
     public static final String TYPE_STRING = "str";
 
@@ -345,6 +347,7 @@ public class Tokenizer {
                 return new Token(TokenType.PRINT, test, currentLine, currentCol - test.length());
 
                 case TYPE_INT:
+                case TYPE_FLOAT:
                 case TYPE_CHAR:
                 case TYPE_STRING:
                 return new Token(TokenType.TYPE, test, currentLine, currentCol - test.length());
@@ -358,6 +361,11 @@ public class Tokenizer {
                 if (isIntLiteral(test))
                 {
                     return new Token(TokenType.LITERAL_INT, test, currentLine, currentCol - test.length());
+                }
+
+                if (isFloatLiteral(test))
+                {
+                    return new Token(TokenType.LITERAL_FLOAT, test, currentLine, currentCol - test.length());
                 }
             }
 
@@ -383,6 +391,23 @@ public class Tokenizer {
         for (int i = 0; i < test.length(); i++)
         {
             if (!Character.isDigit(test.charAt(i)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean isFloatLiteral(String test)
+    {
+        for (int i = 0; i < test.length(); i++)
+        {
+            if (!Character.isDigit(test.charAt(i)) && test.charAt(i) != DOT)
+            {
+                return false;
+            }
+            else if (test.charAt(i) == DOT && i == test.length() - 1)
             {
                 return false;
             }

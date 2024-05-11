@@ -6,16 +6,16 @@ import codegen.CompileException;
 
 public class CharDeclaration extends Declaration
 {
-    private IntExpression expression;
+    private NumExpression expression;
 
-    public CharDeclaration(Token type, Token identifier, IntExpression expr)
+    public CharDeclaration(Token type, Token identifier, NumExpression expr)
     {
         setType(type);
         setIdentifier(identifier);
         expression = expr;
     }
 
-    public final IntExpression getExpression()
+    public final NumExpression getExpression()
     {
         return expression;
     }
