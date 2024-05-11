@@ -12,6 +12,7 @@ public class Parser
      private List<Statement> program = new ArrayList<Statement>();
      private List<Token> tokenList = new ArrayList<Token>();
      private SymbolTable symbolTable = new SymbolTable();
+     private LiteralTable litTable = new LiteralTable();
      private int tokenPos;
 
      public static final int INT_SIZE = 4;
@@ -55,6 +56,11 @@ public class Parser
      public SymbolTable getSymbolTable()
      {
         return symbolTable;
+     }
+
+     public LiteralTable getLitTable()
+     {
+        return litTable;
      }
 
      private Statement parseStatement() throws ParseException
@@ -551,7 +557,13 @@ public class Parser
      {
         if (peek() != null)
         {
-            if (peek().getType() == TokenType.LITERAL_STR || peek().getType() == TokenType.IDENTIFIER)
+            if (peek().getType() == TokenType.LITERAL_STR)
+            {
+                Token temp = consume();
+                litTable.addLiteralWithType(temp.getValue(), Tokenizer.TYPE_STRING);
+                return new StringExpression(temp);
+            }
+            else if (peek().getType() == TokenType.IDENTIFIER)
             {
                 return new StringExpression(consume());
             }

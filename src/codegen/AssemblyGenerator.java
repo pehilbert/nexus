@@ -3,6 +3,7 @@ package codegen;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
+import java.util.Iterator;
 
 import parser.Parser;
 import parser.Statement;
@@ -42,6 +43,8 @@ public class AssemblyGenerator implements StatementVisitor {
         try (FileWriter writer = new FileWriter(outputFile)) 
         {          
             List<Statement> program = parser.getProgram();
+            writer.write( generateDataSegment() );
+            writer.write("\n");
             writer.write( generatePreamble() );
 
             // write assembly code
@@ -52,9 +55,6 @@ public class AssemblyGenerator implements StatementVisitor {
                 writer.write( program.get(i).accept(this) );
                 i++;
             }
-
-            writer.write( generateDataSegment() );
-            //System.out.println(identifiers.toString());
 
             return true;
         } 
@@ -120,11 +120,8 @@ public class AssemblyGenerator implements StatementVisitor {
                 throw new CompileException("Identifier '" + stmt.getIdentifier().getValue() + "' does not exist.");
             }
 
-            int dataOffset = parser.getSymbolTable().getDataOffset(stmt.getIdentifier().getValue());
-            String strAddr = PTR_DATA + " + " + dataOffset;
-
             String a = "";
-            a += strExpressionAssembly( stmt.getExpression(), "ebx", strAddr);
+            a += strExpressionAssembly( stmt.getExpression(), "ebx");
             a += "\tsub esp, " + Parser.PTR_SIZE + "\n";
             a += "\tmov [esp], ebx\n";
             return a;
@@ -140,27 +137,12 @@ public class AssemblyGenerator implements StatementVisitor {
         try
         {
             StringExpression expr = stmt.getExpression();
-            Token exprToken = expr.getToken();
 
-            if (exprToken.getType() == TokenType.IDENTIFIER)
-            {
-                String identifierType = parser.getSymbolTable().getIdentifierType(exprToken.getValue());
-                if (identifierType.equals(Tokenizer.TYPE_STRING))
-                {
-                    String a = "";
-                    a += handleIdentifier(expr, "ebx");
-                    a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
-                    return a;
-                }
-                else
-                {
-                    throw new CompileException("Expected identifier of type str, got one of type " + identifierType);
-                }
-            }
-            else
-            {
-                throw new CompileException("Reassignment for strings only supported for string identifiers.");
-            }
+            String a = "";
+            a += strExpressionAssembly(expr, "ebx");
+            a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
+            
+            return a;
         }
         catch (CompileException exception)
         {
@@ -225,8 +207,7 @@ public class AssemblyGenerator implements StatementVisitor {
             dataLen = str.length() + 1;
 
             a += "\tmov edx, " + dataLen + "\n";
-            a += handleStringLiteral(expr, BUFFER);
-            a += "\tmov ecx, " + BUFFER + "\n";
+            a += handleStringLiteral(expr, "ecx");
             a += "\tint 0x80\n";
             break;
 
@@ -263,16 +244,20 @@ public class AssemblyGenerator implements StatementVisitor {
         }
     }
 
-    // Loads a string literal into the given memory location
-    private String handleStringLiteral(StringExpression expr, String location) throws CompileException 
+    // Loads the memory location of a string literal into a given register
+    private String handleStringLiteral(StringExpression expr, String register) throws CompileException 
     {
         String a = "";
         String str = expr.getToken().getValue();
-    
-        for (int i = 0; i < str.length(); i++) {
-            a += "\tmov byte [" + location + " + " + i + "], " + (int)str.charAt(i) + "\n";
+        String type = parser.getLitTable().getLiteralType(str);
+        String label = parser.getLitTable().getLiteralLabel(str);
+
+        if (!type.equals(Tokenizer.TYPE_STRING) || label == null)
+        {
+            throw new CompileException("Could not resolve string literal: " + str);
         }
-        a += "\tmov byte [" + location + " + " + str.length() + "], 0\n";
+
+        a += "\tlea " + register + ", " + label + "\n";
     
         return a;
     }  
@@ -291,14 +276,13 @@ public class AssemblyGenerator implements StatementVisitor {
     }
     
     // Handles a string expression, puts the memory location of the resulting string into the given register
-    private String strExpressionAssembly(StringExpression expr, String register, String location) throws CompileException 
+    private String strExpressionAssembly(StringExpression expr, String register) throws CompileException 
     {
         String a = "";
         switch (expr.getToken().getType()) 
         {
             case LITERAL_STR:
-            a += handleStringLiteral(expr, location);
-            a += "\tlea " + register + ", [" + location +  "]\n";
+            a += handleStringLiteral(expr, register);
             break;
 
             case IDENTIFIER:
@@ -327,34 +311,34 @@ public class AssemblyGenerator implements StatementVisitor {
             // evaluate left hand side, put into register
             a += numExpressionAssembly(expr.getLeft(), register, floatMode);
 
-            // preserve xmm8 and register
+            // preserve xmm5 and register
             a += "\tsub esp, 4\n";
-            a += "\tmovss [esp], xmm8\n";
+            a += "\tmovss [esp], xmm5\n";
             a += "\tsub esp, 4\n";
             a += "\tmovss [esp], " + register + "\n";
 
             // evaluate right hand side, put into register
             a += numExpressionAssembly(expr.getRight(), register, floatMode);
 
-            // get the left hand side off the stack, and into xmm8
-            a += "\tmovss xmm8, [esp]\n";
+            // get the left hand side off the stack, and into xmm5
+            a += "\tmovss xmm5, [esp]\n";
             a += "\tadd esp, 4\n";
 
-            // perform operation with xmm8 and register
+            // perform operation with xmm5 and register
             if (expr.getOperator().getType() == TokenType.PLUS)
             {
-                a += "\taddss xmm8, " + register + "\n";
+                a += "\taddss xmm5, " + register + "\n";
             }
             else if (expr.getOperator().getType() == TokenType.MINUS)
             {
-                a += "\tsubss xmm8, " + register + "\n";
+                a += "\tsubss xmm5, " + register + "\n";
             }
 
             // move result into register
-            a += "\tmovss " + register + ", xmm8\n";
+            a += "\tmovss " + register + ", xmm5\n";
 
-            // restore original xmm8
-            a += "\tmovss xmm8, [esp]\n";
+            // restore original xmm5
+            a += "\tmovss xmm5, [esp]\n";
             a += "\tadd esp, 4\n";
         }
         else
@@ -407,34 +391,34 @@ public class AssemblyGenerator implements StatementVisitor {
             // evaluate left hand side, put into register
             a += numTermAssembly(term.getLeft(), register, floatMode);
 
-            // preserve xmm9 and register
+            // preserve xmm6 and register
             a += "\tsub esp, 4\n";
-            a += "\tmovss [esp], xmm9\n";
+            a += "\tmovss [esp], xmm6\n";
             a += "\tsub esp, 4\n";
             a += "\tmovss [esp], " + register + "\n";
 
             // evaluate right hand side, put into register
             a += numTermAssembly(term.getRight(), register, floatMode);
 
-            // get the left hand side off the stack, and into xmm9
-            a += "\tmovss xmm9, [esp]\n";
+            // get the left hand side off the stack, and into xmm6
+            a += "\tmovss xmm6, [esp]\n";
             a += "\tadd esp, 4\n";
 
-            // perform operation with xmm9 and register
+            // perform operation with xmm6 and register
             if (term.getOperator().getType() == TokenType.TIMES)
             {
-                a += "\tmulss xmm9, " + register + "\n";
+                a += "\tmulss xmm6, " + register + "\n";
             }
             else if (term.getOperator().getType() == TokenType.DIVISION)
             {
-                a += "\tdivss xmm9, " + register + "\n";
+                a += "\tdivss xmm6, " + register + "\n";
             }
 
             // move result into register
-            a += "\tmovss " + register + ", xmm9\n";
+            a += "\tmovss " + register + ", xmm6\n";
 
-            // restore original xmm9
-            a += "\tmovss xmm9, [esp]\n";
+            // restore original xmm6
+            a += "\tmovss xmm6, [esp]\n";
             a += "\tadd esp, 4\n";
         }
         else
@@ -607,8 +591,8 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             if (floatMode) 
             {
-                a += "\tmovss xmm1, [" + FLOAT_NEG_MASK + "]\n";
-                a += "\txorps " + register + ", xmm1\n";
+                a += "\tmovss xmm7, [" + FLOAT_NEG_MASK + "]\n";
+                a += "\txorps " + register + ", xmm7\n";
             } 
             else 
             {
@@ -630,8 +614,7 @@ public class AssemblyGenerator implements StatementVisitor {
 
         // Perform the conversion
         a += "\tmov eax, " + value + "\n";
-        a += "\tmovd " + register + ", eax\n";                  
-        a += "\tcvtsi2ss " + register + ", " + register + "\n";
+        a += "\tcvtsi2ss " + register + ", eax\n";
 
         // put eax back
         a += "\tpop eax\n";
@@ -647,7 +630,7 @@ public class AssemblyGenerator implements StatementVisitor {
         a += "\tsection .data\n";
         a += "\tfloat%3 dd %2\n";
         a += "\tsection .text\n";
-        a += "\tmovss %1, [temp]\n";
+        a += "\tmovss %1, [float%3]\n";
         a += "%endmacro\n\n";
 
         a += "section .text\n";
@@ -658,15 +641,79 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }
 
-    private String generateDataSegment()
+    private String generateDataSegment() throws CompileException
     {
         String a = "";
+        Iterator<String> literalIterator = parser.getLitTable().getLiteralIterator();
+        int labelCount = 0;
 
         a += "section .data\n";
+
+        while (literalIterator.hasNext())
+        {
+            String current = literalIterator.next();
+            String label = "lit" + Integer.toString(labelCount);
+            String type = parser.getLitTable().getLiteralType(current);
+            
+            switch (type)
+            {
+                case Tokenizer.TYPE_STRING:
+                a += label + " db " + stringToAsmLiteral(current) + "\n";
+                break;
+
+                default:
+                throw new CompileException("Unknown literal type: " + type);
+            }
+
+            parser.getLitTable().addLabelForLiteral(current, label);
+            labelCount++;
+        }
+
         a += PTR_DATA + " db " + parser.getSymbolTable().getAllDataSize() + " dup(0)\n";
         a += BUFFER + " db " + BUFFER_SIZE + " dup(0)\n";
         a += FLOAT_NEG_MASK + " dd 0x80000000\n";
 
         return a;
+    }
+
+    private String stringToAsmLiteral(String inputString) {
+        // Use StringBuilder for efficient string concatenation
+        String asmLiteral = "";
+        
+        // Iterate through each character in the input string
+        for (char c : inputString.toCharArray()) 
+        {
+            switch (c) 
+            {
+                case '\n':
+                asmLiteral += "0x0A, ";
+                break;
+
+                case '\t':
+                asmLiteral += "0x09, ";
+                break;
+
+                case '\\':
+                asmLiteral += "0x5C, ";
+                break;
+
+                case '\"':
+                asmLiteral += "0x22, ";
+                break;
+
+                case '\'':
+                asmLiteral += "0x27, ";
+                break;
+
+                default:
+                asmLiteral += "'" + c + "', ";
+                break;
+            }
+        }
+        
+        // Append 0 at the end for null-termination
+        asmLiteral += "0";
+        
+        return asmLiteral;
     }
 }
