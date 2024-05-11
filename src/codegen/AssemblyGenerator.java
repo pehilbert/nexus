@@ -27,6 +27,7 @@ public class AssemblyGenerator implements StatementVisitor {
     private Parser parser;
     private int labelCount;
 
+    static final String STR_SIZE_MD = "strSize";
     static final String PTR_DATA = "pd";
     static final String BUFFER = "buf";
     static final String FLOAT_NEG_MASK = "nmask";
@@ -120,6 +121,8 @@ public class AssemblyGenerator implements StatementVisitor {
                 throw new CompileException("Identifier '" + stmt.getIdentifier().getValue() + "' does not exist.");
             }
 
+            updateStringLength(stmt.getIdentifier().getValue(), stmt.getExpression());
+
             String a = "";
             a += strExpressionAssembly( stmt.getExpression(), "ebx");
             a += "\tsub esp, " + Parser.PTR_SIZE + "\n";
@@ -137,6 +140,7 @@ public class AssemblyGenerator implements StatementVisitor {
         try
         {
             StringExpression expr = stmt.getExpression();
+            updateStringLength(stmt.getIdentifier().getValue(), expr);
 
             String a = "";
             a += strExpressionAssembly(expr, "ebx");
@@ -193,7 +197,7 @@ public class AssemblyGenerator implements StatementVisitor {
     {
         StringExpression expr = stmt.getExpression();
         Token exprToken = expr.getToken();
-        int dataLen;
+        String dataLen;
 
         String a = "";
 
@@ -204,7 +208,7 @@ public class AssemblyGenerator implements StatementVisitor {
         {
             case LITERAL_STR:
             String str = exprToken.getValue();
-            dataLen = str.length() + 1;
+            dataLen = Integer.toString(str.length() + 1);
 
             a += "\tmov edx, " + dataLen + "\n";
             a += handleStringLiteral(expr, "ecx");
@@ -212,7 +216,7 @@ public class AssemblyGenerator implements StatementVisitor {
             break;
 
             case IDENTIFIER:
-            dataLen = parser.getSymbolTable().getVarInfo(exprToken.getValue()).getTotalSize();
+            dataLen = parser.getSymbolTable().getVarInfo(exprToken.getValue()).getMetaData(STR_SIZE_MD);
 
             a += "\tmov edx, " + dataLen + "\n";
             a += handleIdentifier(expr, "ecx");
@@ -241,6 +245,23 @@ public class AssemblyGenerator implements StatementVisitor {
         catch (CompileException exception)
         {
             throw exception;
+        }
+    }
+
+    private void updateStringLength(String identifier, StringExpression expr)
+    {
+        switch (expr.getToken().getType())
+        {
+            case LITERAL_STR:
+            parser.getSymbolTable().getVarInfo(identifier).updateMetaData(STR_SIZE_MD, Integer.toString(expr.getToken().getValue().length()));
+            break;
+
+            case IDENTIFIER:
+            parser.getSymbolTable().getVarInfo(identifier).updateMetaData(STR_SIZE_MD, parser.getSymbolTable().getVarInfo(identifier).getMetaData(STR_SIZE_MD));
+            break;
+
+            default:
+            break;
         }
     }
 

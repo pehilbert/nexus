@@ -161,10 +161,7 @@ public class Parser
                                 case Tokenizer.TYPE_STRING:
                                 StringExpression strExpression = parseStringExpression();
                                 newDeclaration = new StringDeclaration(typeToken, identifierToken, strExpression);
-
-                                pointer = true;
                                 newVarSize = PTR_SIZE;
-                                ptrDataSize = getStringSize(strExpression);
                                 break;
 
                                 default:
@@ -186,11 +183,6 @@ public class Parser
                                     {
                                         switch (typeToken.getValue())
                                         {
-                                            case Tokenizer.TYPE_STRING:
-                                            symbolTable.makePointer(identifierToken.getValue(), Tokenizer.TYPE_CHAR, 
-                                                                                                CHAR_SIZE, ptrDataSize);
-                                            break;
-
                                             default:
                                             throw new ParseException("Unsupported pointer type: " + typeToken.getValue(), typeToken);
                                         }
@@ -334,6 +326,7 @@ public class Parser
         }
      }
 
+     /*
      private int getStringSize(StringExpression strExpression) throws ParseException
      {
         switch (strExpression.getToken().getType())
@@ -355,6 +348,7 @@ public class Parser
             throw new ParseException("Invalid token " + strExpression.getToken().getValue() + " at this position.");
         }
      }
+     */
 
      private PrintStatement parsePrintStatement() throws ParseException
      {

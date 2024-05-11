@@ -1,11 +1,15 @@
 package parser;
 
+import java.util.Map;
+import java.util.HashMap;
+
 public class VarInfo {
     // attributes for all variables
     private int offset;
     private int size;
     private String type;
     private boolean isPointer;
+    private Map<String, String> metaData;
 
     // additional pointer attributes
     private String primitiveDataType;
@@ -22,6 +26,7 @@ public class VarInfo {
         primitiveDataType = "";
         unitDataSize = 0;
         totalDataSize = 0;
+        metaData = new HashMap<String, String>();
     }
 
     public void addPointerInfo(String primitive, int offset, int unitSize, int totalSize)
@@ -109,7 +114,18 @@ public class VarInfo {
         s += "\nType: " + type;
         s += ", Offset: " + offset;
         s += ", Size: " + size + "\n";
+        s += "Metadata: " + metaData.toString() + "\n";
 
         return s;
+    }
+
+    public void updateMetaData(String key, String value)
+    {
+        metaData.put(key, value);
+    }
+
+    public String getMetaData(String key)
+    {
+        return metaData.get(key);
     }
 }
