@@ -1,17 +1,10 @@
 # str
 ## Overview
-The `str` data type stores a reference to an array of [characters](./char.md), used to store text data.
-## Size
-The memory address stored in a `str` value is **4 bytes.** The data it points to could, in theory, be any size.
+The `str` data type stores a string of characters that can be used for printing. Note that strings in Nexus are their own data type and are immutable, thus differentiating them from a simple array of characters.
 ## Usage
-Strings are mostly used in conjunction with the `print` keyword, to print strings to standard output. A string literal can be written in double quotes, or an identifier for another string can be used in its place. Note that, because strings are references and not literal data, assigning one string variable to another will cause both variables to point to the same data. As of now, Nexus only supports reassigning string variables to other existing variables; you cannot reassign an existing string to a string literal.
+Strings are mostly used in conjunction with the [`print`](../keywords/print.md) keyword, to print strings to standard output. A string literal can be written in double quotes, or an identifier for another string can be used in its place. String variables can be declared with the `str` keyword.
 ```
-str firstString = "first";
-print firstString; # Outputs 'first'
-
-str secondString = "second";
-print secondString; # Outputs 'second'
-
-firstString = secondString;
-print firstString; # Outputs 'second' again
+str helloString = "Hello, world!"; # defines a string with a string literal
+print helloString; # prints the string
+print "\n";
 ```
