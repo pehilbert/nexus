@@ -1,3 +1,3 @@
 # Keywords
-### [print](./print.md)
-### [exit](./exit.md)
+- ### [print](./print.md)
+- ### [exit](./exit.md)
