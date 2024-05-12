@@ -117,8 +117,6 @@ public class Parser
                         if (peek() != null && peek().getType() == TokenType.EQUALS) 
                         {
                             consume();
-                            int ptrDataSize = -1;
-                            boolean pointer = false;
 
                             switch (typeToken.getValue())
                             {
@@ -132,7 +130,7 @@ public class Parser
                                 }
                                 else
                                 {
-                                    throw new ParseException("Number expression must be an int value", typeToken);
+                                    throw new ParseException("Cannot convert float expression to int", typeToken);
                                 }
 
                                 case Tokenizer.TYPE_FLOAT:
@@ -150,7 +148,7 @@ public class Parser
                                 }
                                 else
                                 {
-                                    throw new ParseException("Number expression must be an int value", typeToken);
+                                    throw new ParseException("Cannot convert float expression to char", typeToken);
                                 }
 
                                 case Tokenizer.TYPE_STRING:
@@ -169,22 +167,6 @@ public class Parser
                                 if (!symbolTable.addIdentifier(typeToken.getValue(), identifierToken.getValue()))
                                 {
                                     throw new ParseException("Identifier '" + identifierToken.getValue() + "' already in use.");
-                                }
-
-                                if (pointer)
-                                {
-                                    if (ptrDataSize != -1)
-                                    {
-                                        switch (typeToken.getValue())
-                                        {
-                                            default:
-                                            throw new ParseException("Unsupported pointer type: " + typeToken.getValue(), typeToken);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        throw new ParseException("Could not resolve the data size of the pointer " + identifierToken.getValue(), identifierToken);
-                                    }
                                 }
 
                                 return newDeclaration;
@@ -252,7 +234,7 @@ public class Parser
                             }
                             else
                             {
-                                throw new ParseException("Number expression must be an int value", identifier);
+                                throw new ParseException("Cannot convert float expression to int", identifier);
                             }
 
                             case Tokenizer.TYPE_FLOAT:
@@ -270,7 +252,7 @@ public class Parser
                             }
                             else
                             {
-                                throw new ParseException("Number expression must be an int value", identifier);
+                                throw new ParseException("Cannot convert float expression to char", identifier);
                             }
 
                             case Tokenizer.TYPE_STRING:
@@ -279,7 +261,7 @@ public class Parser
                             break;
 
                             default:
-                            throw new ParseException("Unknown type of identifier '" + identifier.getValue() + "'", identifier);
+                            throw new ParseException("Unknown type of identifier '" + identifier.getValue() + "': " + info.getType(), identifier);
                         }
 
                         if (peek().getType() == TokenType.SEMICOLON)
@@ -347,7 +329,7 @@ public class Parser
 
             if (expression.isFloat())
             {
-                throw new ParseException("Exit code must be an int value");
+                throw new ParseException("Exit code cannot be a float value");
             }
 
             if ( peek() != null && peek().getType() == TokenType.SEMICOLON )
@@ -446,7 +428,7 @@ public class Parser
                     }
                     else
                     {
-                        throw new ParseException("Identifier '" + identifierStr + "' already exists", newFactor.getToken());
+                        throw new ParseException("Unknown identifier: " + identifierStr, newFactor.getToken());
                     }
 
                     default:
