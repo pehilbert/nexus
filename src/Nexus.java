@@ -87,7 +87,7 @@ public class Nexus
                         parser.printStatements();
                         System.out.println();
 
-                        System.out.println("Symbol table:");
+                        System.out.println("Parser symbol table:");
                         System.out.println(parser.getSymbolTable().toString());
                         System.out.println();
                     }
@@ -96,10 +96,6 @@ public class Nexus
                     {
                         codeGenerator = new Compiler(parser);
                         codeGenerator.compile(outFilename, verbose);
-
-                        System.out.println("\nSymbol table after compilation:");
-                        System.out.println(parser.getSymbolTable().toString());
-                        System.out.println();
                     }
                     catch (CompileException exception)
                     {

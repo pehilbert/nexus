@@ -33,6 +33,11 @@ public class AssemblyGenerator implements StatementVisitor {
     static final String FLOAT_NEG_MASK = "nmask";
     static final int BUFFER_SIZE = 1024;
 
+    static final int INT_SIZE = 4;
+    static final int FLOAT_SIZE = 4;
+    static final int CHAR_SIZE = 1;
+    static final int PTR_SIZE = 4;
+
     public AssemblyGenerator(Parser inParser)
     {
         parser = inParser;
@@ -81,12 +86,12 @@ public class AssemblyGenerator implements StatementVisitor {
         if (stmt.getExpression().isFloat())
         {
             a += numExpressionAssembly( stmt.getExpression(), "xmm0", true );
-            a += "\tsub esp, " + Parser.FLOAT_SIZE + "\n";
+            a += "\tsub esp, " + FLOAT_SIZE + "\n";
             a += "\tmovss [esp], xmm0\n";
 
             if (!tableStack.identifierInUse(identifier))
             {
-                tableStack.peek().addIdentifier(Tokenizer.TYPE_FLOAT, identifier, Parser.FLOAT_SIZE);
+                tableStack.peek().addIdentifier(Tokenizer.TYPE_FLOAT, identifier, FLOAT_SIZE);
             }
             else
             {
@@ -96,12 +101,12 @@ public class AssemblyGenerator implements StatementVisitor {
         else
         {
             a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
-            a += "\tsub esp, " + Parser.INT_SIZE + "\n";
+            a += "\tsub esp, " + INT_SIZE + "\n";
             a += "\tmov [esp], ebx\n";
 
             if (!tableStack.identifierInUse(identifier))
             {
-                tableStack.peek().addIdentifier(Tokenizer.TYPE_INT, identifier, Parser.INT_SIZE);
+                tableStack.peek().addIdentifier(Tokenizer.TYPE_INT, identifier, INT_SIZE);
             }
             else
             {
@@ -118,12 +123,12 @@ public class AssemblyGenerator implements StatementVisitor {
         String identifier = stmt.getIdentifier().getValue();
 
         a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
-        a += "\tsub esp, " + Parser.CHAR_SIZE + "\n";
+        a += "\tsub esp, " + CHAR_SIZE + "\n";
         a += "\tmov [esp], bl\n";
 
         if (!tableStack.identifierInUse(identifier))
         {
-            tableStack.peek().addIdentifier(Tokenizer.TYPE_CHAR, identifier, Parser.CHAR_SIZE);
+            tableStack.peek().addIdentifier(Tokenizer.TYPE_CHAR, identifier, CHAR_SIZE);
         }
         else
         {
@@ -138,15 +143,14 @@ public class AssemblyGenerator implements StatementVisitor {
         String a = "";
         String identifier = stmt.getIdentifier().getValue();
 
-        updateStringLength(identifier, stmt.getExpression());
-
         a += strExpressionAssembly( stmt.getExpression(), "ebx");
-        a += "\tsub esp, " + Parser.PTR_SIZE + "\n";
+        a += "\tsub esp, " + PTR_SIZE + "\n";
         a += "\tmov [esp], ebx\n";
 
         if (!tableStack.identifierInUse(identifier))
         {
-            tableStack.peek().addIdentifier(Tokenizer.TYPE_STRING, identifier, Parser.PTR_SIZE);
+            tableStack.peek().addIdentifier(Tokenizer.TYPE_STRING, identifier, PTR_SIZE);
+            updateStringLength(identifier, stmt.getExpression());
         }
         else
         {
@@ -165,10 +169,10 @@ public class AssemblyGenerator implements StatementVisitor {
 
         if (offset != -1)
         {
-            updateStringLength(stmt.getIdentifier().getValue(), expr);
-
             a += strExpressionAssembly(expr, "ebx");
             a += "\tmov [ebp + " + offset.toString() + "], ebx\n";
+
+            updateStringLength(stmt.getIdentifier().getValue(), expr);
             
             return a;
         }
@@ -240,7 +244,7 @@ public class AssemblyGenerator implements StatementVisitor {
             break;
 
             case IDENTIFIER:
-            dataLen = parser.getSymbolTable().getVarInfo(exprToken.getValue()).getMetaData(STR_SIZE_MD);
+            dataLen = tableStack.getVarInfo(exprToken.getValue()).getMetaData(STR_SIZE_MD);
 
             a += "\tmov edx, " + dataLen + "\n";
             a += handleIdentifier(expr, "ecx");
@@ -265,7 +269,7 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }
 
-    private void updateStringLength(String identifier, StringExpression expr)
+    private void updateStringLength(String identifier, StringExpression expr) throws CompileException
     {
         switch (expr.getToken().getType())
         {
@@ -278,7 +282,7 @@ public class AssemblyGenerator implements StatementVisitor {
             break;
 
             default:
-            break;
+            throw new CompileException("Could not update string length of " + identifier);
         }
     }
 
