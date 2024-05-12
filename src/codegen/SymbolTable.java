@@ -1,4 +1,4 @@
-package parser;
+package codegen;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -18,6 +18,18 @@ public class SymbolTable {
     public boolean identifierExists(String identifier)
     {
         return table.containsKey(identifier);
+    }
+
+    public boolean addIdentifier(String type, String identifier)
+    {
+        if (!identifierExists(identifier))
+        {
+            VarInfo info = new VarInfo(type);
+            table.put(identifier, info);
+            return true;
+        }
+
+        return false;
     }
 
     public boolean addIdentifier(String type, String identifier, int size)

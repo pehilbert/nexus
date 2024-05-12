@@ -1,4 +1,4 @@
-package parser;
+package codegen;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -16,6 +16,18 @@ public class VarInfo {
     private int dataOffset;
     private int unitDataSize;
     private int totalDataSize;
+
+    public VarInfo(String inType)
+    {
+        type = inType;
+        size = 0;
+        offset = 0;
+        isPointer = false;
+        primitiveDataType = "";
+        unitDataSize = 0;
+        totalDataSize = 0;
+        metaData = new HashMap<String, String>();
+    }
 
     public VarInfo(String inType, int inSize, int inOffset)
     {
