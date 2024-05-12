@@ -1,6 +1,10 @@
 package parser;
 
 import java.util.List;
+
+import codegen.SymbolTable;
+import codegen.VarInfo;
+
 import java.util.ArrayList;
 
 import tokenizer.Token;

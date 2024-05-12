@@ -1,4 +1,4 @@
-package parser;
+package codegen;
 
 import java.util.Map;
 import java.util.HashMap;
