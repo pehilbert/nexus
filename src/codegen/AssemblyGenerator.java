@@ -25,6 +25,7 @@ import tokenizer.Tokenizer;
 
 public class AssemblyGenerator implements StatementVisitor {
     private Parser parser;
+    private TableStack tableStack;
 
     static final String STR_SIZE_MD = "strSize";
     static final String PTR_DATA = "pd";
@@ -35,12 +36,15 @@ public class AssemblyGenerator implements StatementVisitor {
     public AssemblyGenerator(Parser inParser)
     {
         parser = inParser;
+        tableStack = new TableStack();
     }
 
     public boolean generateProgram(String outputFile) throws CompileException
     {
         try (FileWriter writer = new FileWriter(outputFile)) 
-        {          
+        {   
+            tableStack.push(new SymbolTable());
+            
             List<Statement> program = parser.getProgram();
             writer.write( generateDataSegment() );
             writer.write("\n");
@@ -71,124 +75,146 @@ public class AssemblyGenerator implements StatementVisitor {
 
     public String visit(NumDeclaration stmt) throws CompileException 
     {
-        try
+        String a = "";
+        String identifier = stmt.getIdentifier().getValue();
+
+        if (stmt.getExpression().isFloat())
         {
-            String a = "";
-            if (stmt.getExpression().isFloat())
+            a += numExpressionAssembly( stmt.getExpression(), "xmm0", true );
+            a += "\tsub esp, " + Parser.FLOAT_SIZE + "\n";
+            a += "\tmovss [esp], xmm0\n";
+
+            if (!tableStack.identifierInUse(identifier))
             {
-                a += numExpressionAssembly( stmt.getExpression(), "xmm0", true );
-                a += "\tsub esp, " + Parser.FLOAT_SIZE + "\n";
-                a += "\tmovss [esp], xmm0\n";
+                tableStack.peek().addIdentifier(Tokenizer.TYPE_FLOAT, identifier, Parser.FLOAT_SIZE);
             }
             else
             {
-                a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
-                a += "\tsub esp, " + Parser.INT_SIZE + "\n";
-                a += "\tmov [esp], ebx\n";
+                throw new CompileException("Identifier " + identifier + " already in use");
             }
-            return a;
         }
-        catch (CompileException exception)
+        else
         {
-            throw exception;
+            a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
+            a += "\tsub esp, " + Parser.INT_SIZE + "\n";
+            a += "\tmov [esp], ebx\n";
+
+            if (!tableStack.identifierInUse(identifier))
+            {
+                tableStack.peek().addIdentifier(Tokenizer.TYPE_INT, identifier, Parser.INT_SIZE);
+            }
+            else
+            {
+                throw new CompileException("Identifier " + identifier + " already in use");
+            }
         }
+
+        return a;
     }
 
     public String visit(CharDeclaration stmt) throws CompileException 
     {
-        try
+        String a = "";
+        String identifier = stmt.getIdentifier().getValue();
+
+        a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
+        a += "\tsub esp, " + Parser.CHAR_SIZE + "\n";
+        a += "\tmov [esp], bl\n";
+
+        if (!tableStack.identifierInUse(identifier))
         {
-            String a = "";
-            a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
-            a += "\tsub esp, " + Parser.CHAR_SIZE + "\n";
-            a += "\tmov [esp], bl\n";
-            return a;
+            tableStack.peek().addIdentifier(Tokenizer.TYPE_CHAR, identifier, Parser.CHAR_SIZE);
         }
-        catch (CompileException exception)
+        else
         {
-            throw exception;
+            throw new CompileException("Identifier " + identifier + " already in use");
         }
+
+        return a;
     }
 
     public String visit(StringDeclaration stmt) throws CompileException
     {
-        try
-        {
-            if (!parser.getSymbolTable().identifierExists(stmt.getIdentifier().getValue()))
-            {
-                throw new CompileException("Identifier '" + stmt.getIdentifier().getValue() + "' does not exist.");
-            }
+        String a = "";
+        String identifier = stmt.getIdentifier().getValue();
 
-            updateStringLength(stmt.getIdentifier().getValue(), stmt.getExpression());
+        updateStringLength(identifier, stmt.getExpression());
 
-            String a = "";
-            a += strExpressionAssembly( stmt.getExpression(), "ebx");
-            a += "\tsub esp, " + Parser.PTR_SIZE + "\n";
-            a += "\tmov [esp], ebx\n";
-            return a;
-        }
-        catch (CompileException exception)
+        a += strExpressionAssembly( stmt.getExpression(), "ebx");
+        a += "\tsub esp, " + Parser.PTR_SIZE + "\n";
+        a += "\tmov [esp], ebx\n";
+
+        if (!tableStack.identifierInUse(identifier))
         {
-            throw exception;
+            tableStack.peek().addIdentifier(Tokenizer.TYPE_STRING, identifier, Parser.PTR_SIZE);
         }
+        else
+        {
+            throw new CompileException("Identifier " + identifier + " already in use");
+        }
+
+        return a;
     }
 
     public String visit(StringReassignment stmt) throws CompileException
     {
-        try
+        String a = "";
+        StringExpression expr = stmt.getExpression();
+        String identifier = stmt.getIdentifier().getValue();
+        Integer offset = tableStack.getOffset(identifier);
+
+        if (offset != -1)
         {
-            StringExpression expr = stmt.getExpression();
             updateStringLength(stmt.getIdentifier().getValue(), expr);
 
-            String a = "";
             a += strExpressionAssembly(expr, "ebx");
-            a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
+            a += "\tmov [ebp + " + offset.toString() + "], ebx\n";
             
             return a;
         }
-        catch (CompileException exception)
-        {
-            throw exception;
-        }
+
+        throw new CompileException("Unknown identifier: " + identifier);
     }
 
     public String visit(NumReassignment stmt) throws CompileException
     {
-        try
+        String a = "";
+        String identifier = stmt.getIdentifier().getValue();
+        Integer offset = tableStack.getOffset(identifier);
+
+        if (offset != -1)
         {
-            String a = "";
             if (stmt.getExpression().isFloat())
             {
                 a += numExpressionAssembly(stmt.getExpression(), "xmm0", true);
-                a += a += "\tmovss [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], xmm0\n";
+                a += a += "\tmovss [ebp + " + offset.toString() + "], xmm0\n";
             }
             else
             {
                 a += numExpressionAssembly(stmt.getExpression(), "ebx", false);
-                a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], ebx\n";
+                a += "\tmov [ebp + " + offset.toString() + "], ebx\n";
             }
 
             return a;
         }
-        catch (CompileException exception)
-        {
-            throw exception;
-        }
+
+        throw new CompileException("Unknown identifier: " + identifier);
     }
 
     public String visit(CharReassignment stmt) throws CompileException
     {
-        try
+        String a = "";
+        String identifier = stmt.getIdentifier().getValue();
+        Integer offset = tableStack.getOffset(identifier);
+
+        if (offset != -1)
         {
-            String a = "";
             a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
-            a += "\tmov [ebp - " + parser.getSymbolTable().getStackOffset(stmt.getIdentifier().getValue()) + "], bl\n";
+            a += "\tmov [ebp + " + offset.toString() + "], bl\n";
             return a;
         }
-        catch (CompileException exception)
-        {
-            throw exception;
-        }
+
+        throw new CompileException("Unknown identifier: " + identifier);
     }
 
     public String visit(PrintStatement stmt) throws CompileException 
@@ -230,20 +256,13 @@ public class AssemblyGenerator implements StatementVisitor {
 
     public String visit(ExitStatement stmt) throws CompileException 
     {
-        try
-        {
-            String a = "";
+        String a = "";
 
-            a += "\tmov eax, 1\n";
-            a += numExpressionAssembly(stmt.getExpression(), "ebx", false);
-            a += "\tint 0x80\n\n";
+        a += "\tmov eax, 1\n";
+        a += numExpressionAssembly(stmt.getExpression(), "ebx", false);
+        a += "\tint 0x80\n\n";
 
-            return a;
-        }
-        catch (CompileException exception)
-        {
-            throw exception;
-        }
+        return a;
     }
 
     private void updateStringLength(String identifier, StringExpression expr)
@@ -251,11 +270,11 @@ public class AssemblyGenerator implements StatementVisitor {
         switch (expr.getToken().getType())
         {
             case LITERAL_STR:
-            parser.getSymbolTable().getVarInfo(identifier).updateMetaData(STR_SIZE_MD, Integer.toString(expr.getToken().getValue().length()));
+            tableStack.getVarInfo(identifier).updateMetaData(STR_SIZE_MD, Integer.toString(expr.getToken().getValue().length()));
             break;
 
             case IDENTIFIER:
-            parser.getSymbolTable().getVarInfo(identifier).updateMetaData(STR_SIZE_MD, parser.getSymbolTable().getVarInfo(identifier).getMetaData(STR_SIZE_MD));
+            tableStack.getVarInfo(identifier).updateMetaData(STR_SIZE_MD, tableStack.getVarInfo(identifier).getMetaData(STR_SIZE_MD));
             break;
 
             default:
@@ -284,11 +303,11 @@ public class AssemblyGenerator implements StatementVisitor {
     // Finds the memory location of the string pointed to by an identifier, and puts the result in the given register 
     private String handleIdentifier(StringExpression expr, String register) throws CompileException 
     {
-        int offset = parser.getSymbolTable().getStackOffset(expr.getToken().getValue());
+        Integer offset = tableStack.getOffset(expr.getToken().getValue());
 
         if (offset != -1)
         {
-            return "\tmov " + register + ", [ebp - " + offset + "]\n";
+            return "\tmov " + register + ", [ebp + " + offset.toString() + "]\n";
         }
 
         throw new CompileException("Unknown identifier: " + expr.getToken().getValue());
@@ -560,8 +579,8 @@ public class AssemblyGenerator implements StatementVisitor {
                 throw new CompileException("Attempt to use a float literal in integer expression");
 
                 case IDENTIFIER:
-                Integer offset = parser.getSymbolTable().getStackOffset(token.getValue());
-                String type = parser.getSymbolTable().getIdentifierType(token.getValue());
+                Integer offset = tableStack.getOffset(token.getValue());
+                String type = tableStack.getVarInfo(token.getValue()).getType();
 
                 if (offset == -1)
                 {
@@ -572,12 +591,12 @@ public class AssemblyGenerator implements StatementVisitor {
                 {
                     if ( type.equals(Tokenizer.TYPE_INT) || type.equals(Tokenizer.TYPE_CHAR) )
                     {
-                        valueToConvert = "[ebp - " + offset.toString() + "]";
+                        valueToConvert = "[ebp + " + offset.toString() + "]";
                         a += handleConversion(valueToConvert, register);
                     }
                     else if (type.equals(Tokenizer.TYPE_FLOAT))
                     {
-                        a += "\tmovss " + register + ", [ebp - " + offset.toString() + "]\n";
+                        a += "\tmovss " + register + ", [ebp + " + offset.toString() + "]\n";
                     }
                     else
                     {
@@ -591,7 +610,7 @@ public class AssemblyGenerator implements StatementVisitor {
                         throw new CompileException("Expected identifier for an integer or character, got one for type " + type);
                     }
 
-                    a += "\tmov " + register + ", [ebp - " + offset.toString() + "]\n";
+                    a += "\tmov " + register + ", [ebp + " + offset.toString() + "]\n";
                 }
 
                 break;

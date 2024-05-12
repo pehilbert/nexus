@@ -48,4 +48,40 @@ public class TableStack
 
         return -1;
     }
+
+    public boolean identifierInUse(String identifier)
+    {
+        Iterator<SymbolTable> i = stack.iterator();
+        SymbolTable current;
+
+        while (i.hasNext())
+        {
+            current = i.next();
+
+            if (current.identifierExists(identifier))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public VarInfo getVarInfo(String identifier)
+    {
+        Iterator<SymbolTable> i = stack.iterator();
+        SymbolTable current;
+
+        while (i.hasNext())
+        {
+            current = i.next();
+
+            if (current.identifierExists(identifier))
+            {
+                return current.getVarInfo(identifier);
+            }
+        }
+
+        return null;
+    }
 }
