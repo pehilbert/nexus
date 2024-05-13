@@ -1,7 +1,9 @@
 package codegen;
 
 import parser.Scope;
+import parser.FunctionDeclaration;
 import parser.NumDeclaration;
+
 import parser.CharDeclaration;
 import parser.StringDeclaration;
 import parser.NumReassignment;
@@ -12,6 +14,7 @@ import parser.ExitStatement;
 
 public interface StatementVisitor {
     String visit(Scope stmt) throws CompileException;
+    String visit(FunctionDeclaration stmt) throws CompileException;
     String visit(NumDeclaration stmt) throws CompileException;
     String visit(CharDeclaration stmt) throws CompileException;
     String visit(StringDeclaration stmt) throws CompileException;

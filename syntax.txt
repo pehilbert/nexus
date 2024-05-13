@@ -1,20 +1,26 @@
-<program> ::= <statement_list>
+<scope> ::= '{' <statement_list> '}'
 <statement_list> ::= <statement> | <statement> <statement_list>
-<statement> ::= <declaration> | <exit_statement>
+<statement> ::= <declaration> | <reassignment> | <print_statement> | <exit_statement> | <function_declaration>
 <declaration> ::= <type> <identifier> = <expression>;
 <reassignment> ::= <identifier> = <expression>;
+<print_statement> ::= print <str_expression>;
 <exit_statement> ::= exit <num_expression>;
+<function_declaration> ::= <type> <identifier>'(' <parameter>, <parameter>, ... ')' [<scope> | ';']
+<function_call> ::= <identifier>'(' <parameter>, <parameter>, ... ')'
+<function_call_stmt> ::= <function_call>;
+<return_statement> ::= return <expression>;
+
+<expression> ::= <num_expression> | <char_expression> | <str_expression>
 
 <num_expression> ::= <num_term> | <num_expression> ('+' | '-') <num_expression>
 <num_term> ::= <num_factor> | <num_term> ('*' | '/' | '%') <num_term>
 <num_factor> ::= <num_literal> | <char_literal> | <identifier> | '(' <num_expression> ')'
 
-<char_expression> ::= <num_expression> | <string_index>
+<char_expression> ::= <num_expression>
 <str_expression> ::= <str_literal> | <identifier>
-<str_index> ::= <str_expression>'['<num_expression>']'
 
 <num_literal> ::= [0-9]+
 <char_literal> ::= '*'
-<str_literal> ::= '*'
+<str_literal> ::= "*"
 <identifier> ::= [a-zA-Z][a-zA-Z0-9_]*
-<type> ::= int | float | string
+<type> ::= int | float | str | char

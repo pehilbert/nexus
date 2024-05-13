@@ -6,6 +6,7 @@ import java.util.Iterator;
 
 import parser.Parser;
 import parser.Statement;
+import parser.FunctionDeclaration;
 import parser.StringDeclaration;
 import parser.StringReassignment;
 import parser.NumDeclaration;
@@ -101,6 +102,11 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
         //*/
         //return "";
+    }
+
+    public String visit(FunctionDeclaration stmt) throws CompileException
+    {
+        return "";
     }
 
     public String visit(NumDeclaration stmt) throws CompileException 
