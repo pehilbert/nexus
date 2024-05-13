@@ -30,6 +30,7 @@ public class Tokenizer {
     public static final char CLOSE_BRACKET = ']';
     public static final char OPEN_BRACE = '{';
     public static final char CLOSE_BRACE = '}';
+    public static final char COMMA = ',';
     public static final char SEMICOLON = ';';
     public static final char ENDLINE = '\n';
     public static final char TAB = '\t';
@@ -40,6 +41,8 @@ public class Tokenizer {
     public static final String TYPE_FLOAT = "float";
     public static final String TYPE_CHAR = "char";
     public static final String TYPE_STRING = "str";
+    public static final String TYPE_VOID = "void";
+    public static final String FUNCTION = "function";
 
     public Tokenizer(String inStr)
     {
@@ -70,6 +73,7 @@ public class Tokenizer {
                 case CLOSE_PAREN:
                 case OPEN_BRACE:
                 case CLOSE_BRACE:
+                case COMMA:
                 case SEMICOLON:
                 // if something was already read, tokenize it
                 if (buffer.length() > 0)
@@ -343,6 +347,9 @@ public class Tokenizer {
             case EQUALS:
             return new Token(TokenType.EQUALS, test, currentLine, currentCol);
 
+            case COMMA:
+            return new Token(TokenType.COMMA, test, currentLine, currentCol);
+
             case SEMICOLON:
             return new Token(TokenType.SEMICOLON, test, currentLine, currentCol);
 
@@ -356,10 +363,14 @@ public class Tokenizer {
                 case PRINT:
                 return new Token(TokenType.PRINT, test, currentLine, currentCol - test.length());
 
+                case FUNCTION:
+                return new Token(TokenType.FUNCTION, test, currentLine, currentCol - test.length());
+
                 case TYPE_INT:
                 case TYPE_FLOAT:
                 case TYPE_CHAR:
                 case TYPE_STRING:
+                case TYPE_VOID:
                 return new Token(TokenType.TYPE, test, currentLine, currentCol - test.length());
 
                 default:

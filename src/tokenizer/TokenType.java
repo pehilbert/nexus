@@ -9,6 +9,7 @@ public enum TokenType
     LITERAL_STR,
 
     IDENTIFIER, 
+    FUNCTION,
     EXIT,
     PRINT,
 
@@ -21,6 +22,7 @@ public enum TokenType
     CLOSE_PAREN,
     OPEN_BRACE,
     CLOSE_BRACE,
+    COMMA,
     EQUALS,
     SEMICOLON,
     SINGLE_QUOTE
