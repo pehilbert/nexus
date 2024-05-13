@@ -2,6 +2,7 @@ package parser;
 
 import java.util.List;
 
+import codegen.TableStack;
 import codegen.SymbolTable;
 import codegen.VarInfo;
 
@@ -13,9 +14,9 @@ import tokenizer.Tokenizer;
 
 public class Parser 
 {
-     private List<Statement> program = new ArrayList<Statement>();
+     private Scope globalScope = new Scope();
      private List<Token> tokenList = new ArrayList<Token>();
-     private SymbolTable symbolTable = new SymbolTable();
+     private TableStack tableStack = new TableStack();
      private LiteralTable litTable = new LiteralTable();
      private int tokenPos;
 
@@ -26,35 +27,32 @@ public class Parser
 
      public boolean parseProgram() throws ParseException
      {
-        program.clear();
         tokenPos = 0;
         boolean exit = false;
 
+        tableStack.push(new SymbolTable());
+
         while (!exit && tokenPos < tokenList.size())
         {
-            program.add(parseStatement());
+            globalScope.addStatement(parseStatement());
         }
 
         return !exit;
      }
 
-     public void printStatements()
+     public void printProgram()
      {
-        for (int i = 0; i < program.size(); i++)
-        {
-            Statement statement = program.get(i);
-            statement.printStatement();
-        }
+        globalScope.printStatement();
      }
 
-     public List<Statement> getProgram()
+     public Scope getProgram()
      {
-        return program;
+        return globalScope;
      }
 
-     public SymbolTable getSymbolTable()
+     public TableStack getTableStack()
      {
-        return symbolTable;
+        return tableStack;
      }
 
      public LiteralTable getLitTable()
@@ -70,6 +68,9 @@ public class Parser
             {
                 switch( peek().getType() )
                 {
+                    case OPEN_BRACE:
+                    return parseScope();
+
                     case TYPE:
                     return parseDeclaration();
 
@@ -93,6 +94,36 @@ public class Parser
         catch (ParseException exception)
         {
             throw exception;
+        }
+     }
+
+     private Scope parseScope() throws ParseException
+     {
+        Scope newScope = new Scope();
+        tableStack.push(new SymbolTable());
+
+        if (peek().getType() == TokenType.OPEN_BRACE)
+        {
+            consume();
+
+            while (peek() != null && peek().getType() != TokenType.CLOSE_BRACE)
+            {
+                newScope.addStatement(parseStatement());
+            }
+            
+            if (peek() == null)
+            {
+                throw new ParseException("Unexpected EOF, expected '}' to close scope", peek());
+            }
+
+            consume();
+            tableStack.pop();
+
+            return newScope;
+        }
+        else
+        {
+            throw new ParseException("Expected '{', got " + peek().getValue(), peek());
         }
      }
 
@@ -164,7 +195,7 @@ public class Parser
                             {
                                 consume();
                                 
-                                if (!symbolTable.addIdentifier(typeToken.getValue(), identifierToken.getValue()))
+                                if (!tableStack.peek().addIdentifier(typeToken.getValue(), identifierToken.getValue()))
                                 {
                                     throw new ParseException("Identifier '" + identifierToken.getValue() + "' already in use.");
                                 }
@@ -218,7 +249,7 @@ public class Parser
                 {
                     consume();
 
-                    info = symbolTable.getVarInfo(identifier.getValue());
+                    info = tableStack.getVarInfo(identifier.getValue());
 
                     if (info != null)
                     {
@@ -421,9 +452,9 @@ public class Parser
                     case IDENTIFIER:
                     String identifierStr = newFactor.getToken().getValue();
 
-                    if (symbolTable.identifierExists(identifierStr))
+                    if (tableStack.identifierInUse(identifierStr))
                     {
-                        newFactor.setFloat(symbolTable.getIdentifierType(identifierStr).equals(Tokenizer.TYPE_FLOAT));
+                        newFactor.setFloat(tableStack.getVarInfo(identifierStr).getType().equals(Tokenizer.TYPE_FLOAT));
                         break;
                     }
                     else

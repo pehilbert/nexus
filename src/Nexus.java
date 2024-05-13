@@ -83,12 +83,8 @@ public class Nexus
                     if (verbose)
                     {
                         System.out.println("Program was successfully parsed.");
-                        System.out.println("Statements in program: ");
-                        parser.printStatements();
-                        System.out.println();
-
-                        System.out.println("Parser symbol table:");
-                        System.out.println(parser.getSymbolTable().toString());
+                        System.out.println("Parsed program: ");
+                        parser.printProgram();
                         System.out.println();
                     }
 

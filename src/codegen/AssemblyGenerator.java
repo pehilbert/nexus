@@ -2,7 +2,6 @@ package codegen;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.List;
 import java.util.Iterator;
 
 import parser.Parser;
@@ -13,6 +12,7 @@ import parser.NumDeclaration;
 import parser.CharDeclaration;
 import parser.ExitStatement;
 import parser.PrintStatement;
+import parser.Scope;
 import parser.NumExpression;
 import parser.StringExpression;
 import parser.NumTerm;
@@ -48,21 +48,10 @@ public class AssemblyGenerator implements StatementVisitor {
     {
         try (FileWriter writer = new FileWriter(outputFile)) 
         {   
-            tableStack.push(new SymbolTable());
-            
-            List<Statement> program = parser.getProgram();
             writer.write( generateDataSegment() );
             writer.write("\n");
             writer.write( generatePreamble() );
-
-            // write assembly code
-            int i = 0;
-
-            while (i < program.size())
-            {
-                writer.write( program.get(i).accept(this) );
-                i++;
-            }
+            writer.write( parser.getProgram().accept(this) );
 
             return true;
         } 
@@ -76,6 +65,42 @@ public class AssemblyGenerator implements StatementVisitor {
         }
 
         return false;
+    }
+
+    public String visit(Scope stmt) throws CompileException
+    {
+        ///*
+        SymbolTable scopeTable = new SymbolTable();
+        //scopeTable.addIdentifier("BASE", "-", PTR_SIZE);
+
+        tableStack.push(scopeTable);
+        
+        Iterator<Statement> i = stmt.getIterator();
+        String a = "";
+
+        // save the old base pointer
+        a += "\tpush ebp\n";
+
+        // move the base pointer up to the current stack pointer
+        a += "\tmov ebp, esp\n";
+
+        while (i.hasNext())
+        {
+            a += i.next().accept(this);
+        }
+
+        tableStack.pop();
+
+        // move the stack pointer back down to the base, where the old
+        // base pointer is stored
+        a += "\tmov esp, ebp\n";
+
+        // pop the old base pointer off the stack
+        a += "\tpop ebp\n";
+
+        return a;
+        //*/
+        //return "";
     }
 
     public String visit(NumDeclaration stmt) throws CompileException 
@@ -670,7 +695,6 @@ public class AssemblyGenerator implements StatementVisitor {
         a += "section .text\n";
         a += "global _start\n\n";
         a += "_start:\n";
-        a += "\tmov ebp, esp\n";
 
         return a;
     }
@@ -707,7 +731,7 @@ public class AssemblyGenerator implements StatementVisitor {
             labelCount++;
         }
 
-        a += PTR_DATA + " db " + parser.getSymbolTable().getAllDataSize() + " dup(0)\n";
+        //a += PTR_DATA + " db " + parser.getSymbolTable().getAllDataSize() + " dup(0)\n";
         // a += BUFFER + " db " + BUFFER_SIZE + " dup(0)\n";
         a += FLOAT_NEG_MASK + " dd 0x80000000\n";
 

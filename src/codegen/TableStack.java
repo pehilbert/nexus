@@ -1,49 +1,53 @@
 package codegen;
 
-import java.util.Stack;
-import java.util.Iterator;
+import java.util.List;
+import java.util.ArrayList;
 
 public class TableStack
 {
-    Stack<SymbolTable> stack;
+    List<SymbolTable> stack;
 
     public TableStack()
     {
-        stack = new Stack<SymbolTable>();
+        stack = new ArrayList<SymbolTable>();
     }
 
     public SymbolTable pop()
     {
-        return stack.pop();
+        return stack.remove(stack.size() - 1);
     }
 
     public SymbolTable peek()
     {
-        return stack.peek();
+        return stack.get(stack.size() - 1);
     }
 
     public void push(SymbolTable newTable)
     {
-        stack.push(newTable);
+        stack.add(newTable);
     }
 
     // gets the offset from current base pointer of a certain variable, or -1 if not found
     public int getOffset(String identifier)
     {
-        Iterator<SymbolTable> i = stack.iterator();
         SymbolTable current;
-        int totalSize = 0;
+        int baseOffset = 0;
 
-        while (i.hasNext())
+        for (int i = stack.size() - 1; i >= 0; i--)
         {
-            current = i.next();
+            current = stack.get(i);
 
             if (current.identifierExists(identifier))
             {
-                return totalSize - current.getStackOffset(identifier);
+                // go back up from the stack frame we're currently looking at
+                return baseOffset - current.getStackOffset(identifier);
             }
 
-            totalSize += current.getStackSize();
+            if (i - 1 >= 0)
+            {
+                // essentially, go down to the next stack frame on the stack, accounting for the extra preserved base pointer
+                baseOffset += stack.get(i - 1).getStackSize() + AssemblyGenerator.PTR_SIZE;
+            }
         }
 
         return -1;
@@ -51,12 +55,11 @@ public class TableStack
 
     public boolean identifierInUse(String identifier)
     {
-        Iterator<SymbolTable> i = stack.iterator();
         SymbolTable current;
 
-        while (i.hasNext())
+        for (int i = stack.size() - 1; i >= 0; i--)
         {
-            current = i.next();
+            current = stack.get(i);
 
             if (current.identifierExists(identifier))
             {
@@ -69,12 +72,11 @@ public class TableStack
 
     public VarInfo getVarInfo(String identifier)
     {
-        Iterator<SymbolTable> i = stack.iterator();
         SymbolTable current;
 
-        while (i.hasNext())
+        for (int i = stack.size() - 1; i >= 0; i--)
         {
-            current = i.next();
+            current = stack.get(i);
 
             if (current.identifierExists(identifier))
             {
