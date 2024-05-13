@@ -28,6 +28,8 @@ public class Tokenizer {
     public static final char HASHTAG = '#';
     public static final char OPEN_BRACKET = '[';
     public static final char CLOSE_BRACKET = ']';
+    public static final char OPEN_BRACE = '{';
+    public static final char CLOSE_BRACE = '}';
     public static final char SEMICOLON = ';';
     public static final char ENDLINE = '\n';
     public static final char TAB = '\t';
@@ -66,6 +68,8 @@ public class Tokenizer {
                 case EQUALS:
                 case OPEN_PAREN:
                 case CLOSE_PAREN:
+                case OPEN_BRACE:
+                case CLOSE_BRACE:
                 case SEMICOLON:
                 // if something was already read, tokenize it
                 if (buffer.length() > 0)
@@ -326,6 +330,12 @@ public class Tokenizer {
 
             case CLOSE_PAREN:
             return new Token(TokenType.CLOSE_PAREN, test, currentLine, currentCol);
+
+            case OPEN_BRACE:
+            return new Token(TokenType.OPEN_BRACE, test, currentLine, currentCol);
+
+            case CLOSE_BRACE:
+            return new Token(TokenType.CLOSE_BRACE, test, currentLine, currentCol);
 
             case SINGLE_QUOTE:
             return new Token(TokenType.SINGLE_QUOTE, test, currentLine, currentCol);

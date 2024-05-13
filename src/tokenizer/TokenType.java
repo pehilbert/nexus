@@ -19,6 +19,8 @@ public enum TokenType
     MOD,
     OPEN_PAREN,
     CLOSE_PAREN,
+    OPEN_BRACE,
+    CLOSE_BRACE,
     EQUALS,
     SEMICOLON,
     SINGLE_QUOTE
