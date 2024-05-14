@@ -3,14 +3,15 @@ package codegen;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.HashMap;
 
 import parser.Parser;
+import parser.Expression;
 import parser.Statement;
+import parser.Declaration;
+import parser.Reassignment;
 import parser.FunctionDeclaration;
-import parser.StringDeclaration;
-import parser.StringReassignment;
-import parser.NumDeclaration;
-import parser.CharDeclaration;
 import parser.ExitStatement;
 import parser.PrintStatement;
 import parser.ReturnStatement;
@@ -19,15 +20,14 @@ import parser.NumExpression;
 import parser.StringExpression;
 import parser.NumTerm;
 import parser.NumFactor;
-import parser.NumReassignment;
-import parser.CharReassignment;
 import tokenizer.Token;
 import tokenizer.TokenType;
 import tokenizer.Tokenizer;
 
-public class AssemblyGenerator implements StatementVisitor {
+public class AssemblyGenerator implements AssemblyVisitor {
     private Parser parser;
     private TableStack tableStack;
+    private Map<String, Integer> typeSizes;
 
     static final String STR_SIZE_MD = "strSize";
     static final String PTR_DATA = "pd";
@@ -44,8 +44,18 @@ public class AssemblyGenerator implements StatementVisitor {
     {
         parser = inParser;
         tableStack = new TableStack();
+        typeSizes = new HashMap<String, Integer>();
+        
+        // fill out type size table
+        typeSizes.put(Tokenizer.TYPE_INT, INT_SIZE);
+        typeSizes.put(Tokenizer.TYPE_FLOAT, FLOAT_SIZE);
+        typeSizes.put(Tokenizer.TYPE_CHAR, CHAR_SIZE);
+        typeSizes.put(Tokenizer.TYPE_STRING, PTR_SIZE);
     }
 
+    /*
+     PROGRAM GENERATION FUNCTIONS 
+    */
     public boolean generateProgram(String outputFile) throws CompileException
     {
         try (FileWriter writer = new FileWriter(outputFile)) 
@@ -69,11 +79,62 @@ public class AssemblyGenerator implements StatementVisitor {
         return false;
     }
 
+    private String generatePreamble()
+    {
+        String a = "";
+
+        a += "section .text\n";
+        a += "global _start\n\n";
+        a += "_start:\n";
+
+        return a;
+    }
+
+    private String generateDataSegment() throws CompileException
+    {
+        String a = "";
+        Iterator<String> literalIterator = parser.getLitTable().getLiteralIterator();
+        int labelCount = 0;
+
+        a += "section .data\n";
+
+        while (literalIterator.hasNext())
+        {
+            String current = literalIterator.next();
+            String label = "lit" + Integer.toString(labelCount);
+            String type = parser.getLitTable().getLiteralType(current);
+            
+            switch (type)
+            {
+                case Tokenizer.TYPE_STRING:
+                a += label + " db " + stringToAsmLiteral(current) + "\n";
+                break;
+
+                case Tokenizer.TYPE_FLOAT:
+                a += label + " dd " + current + "\n";
+                break;
+
+                default:
+                throw new CompileException("Unknown literal type: " + type);
+            }
+
+            parser.getLitTable().addLabelForLiteral(current, label);
+            labelCount++;
+        }
+
+        //a += PTR_DATA + " db " + parser.getSymbolTable().getAllDataSize() + " dup(0)\n";
+        // a += BUFFER + " db " + BUFFER_SIZE + " dup(0)\n";
+        a += FLOAT_NEG_MASK + " dd 0x80000000\n";
+
+        return a;
+    }
+
+    /*
+     STATEMENT VISITOR FUNCTIONS
+    */
     public String visit(Scope stmt) throws CompileException
     {
-        ///*
         SymbolTable scopeTable = new SymbolTable();
-        //scopeTable.addIdentifier("BASE", "-", PTR_SIZE);
 
         tableStack.push(scopeTable);
         
@@ -101,8 +162,6 @@ public class AssemblyGenerator implements StatementVisitor {
         a += "\tpop ebp\n";
 
         return a;
-        //*/
-        //return "";
     }
 
     public String visit(FunctionDeclaration stmt) throws CompileException
@@ -115,147 +174,88 @@ public class AssemblyGenerator implements StatementVisitor {
         return "";
     }
 
-    public String visit(NumDeclaration stmt) throws CompileException 
+    public String visit(Declaration stmt) throws CompileException
     {
         String a = "";
+        String type = stmt.getType().getValue();
         String identifier = stmt.getIdentifier().getValue();
+        Expression expr = stmt.getExpression();
+        String register = expr.asmRegister();
+        Integer dataSize = typeSizes.get(type);
 
-        if (stmt.getExpression().isFloat())
+        if (dataSize == null)
         {
-            a += numExpressionAssembly( stmt.getExpression(), "xmm0", true );
-            a += "\tsub esp, " + FLOAT_SIZE + "\n";
-            a += "\tmovss [esp], xmm0\n";
+            throw new CompileException("Unknown size of type " + stmt.getType().getValue());
+        }
 
-            if (!tableStack.identifierInUse(identifier))
-            {
-                tableStack.peek().addIdentifier(Tokenizer.TYPE_FLOAT, identifier, FLOAT_SIZE);
-            }
-            else
-            {
-                throw new CompileException("Identifier " + identifier + " already in use");
-            }
+        a += expr.accept(this);
+        a += "\tsub esp, " + dataSize.toString() + "\n";
+        
+        if (register.startsWith("xmm"))
+        {
+            a += "\tmovss ";
         }
         else
         {
-            a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
-            a += "\tsub esp, " + INT_SIZE + "\n";
-            a += "\tmov [esp], ebx\n";
-
-            if (!tableStack.identifierInUse(identifier))
-            {
-                tableStack.peek().addIdentifier(Tokenizer.TYPE_INT, identifier, INT_SIZE);
-            }
-            else
-            {
-                throw new CompileException("Identifier " + identifier + " already in use");
-            }
+            a += "\tmov ";
         }
 
-        return a;
-    }
-
-    public String visit(CharDeclaration stmt) throws CompileException 
-    {
-        String a = "";
-        String identifier = stmt.getIdentifier().getValue();
-
-        a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
-        a += "\tsub esp, " + CHAR_SIZE + "\n";
-        a += "\tmov [esp], bl\n";
+        a += "[esp], " + register + "\n";
 
         if (!tableStack.identifierInUse(identifier))
         {
-            tableStack.peek().addIdentifier(Tokenizer.TYPE_CHAR, identifier, CHAR_SIZE);
+            tableStack.peek().addIdentifier(type, identifier, dataSize);
         }
         else
         {
             throw new CompileException("Identifier " + identifier + " already in use");
         }
 
-        return a;
-    }
-
-    public String visit(StringDeclaration stmt) throws CompileException
-    {
-        String a = "";
-        String identifier = stmt.getIdentifier().getValue();
-
-        a += strExpressionAssembly( stmt.getExpression(), "ebx");
-        a += "\tsub esp, " + PTR_SIZE + "\n";
-        a += "\tmov [esp], ebx\n";
-
-        if (!tableStack.identifierInUse(identifier))
+        if (type.equals(Tokenizer.TYPE_STRING))
         {
-            tableStack.peek().addIdentifier(Tokenizer.TYPE_STRING, identifier, PTR_SIZE);
-            updateStringLength(identifier, stmt.getExpression());
-        }
-        else
-        {
-            throw new CompileException("Identifier " + identifier + " already in use");
+            updateStringLength(identifier, (StringExpression)stmt.getExpression());
         }
 
         return a;
     }
 
-    public String visit(StringReassignment stmt) throws CompileException
+    public String visit(Reassignment stmt) throws CompileException
     {
         String a = "";
-        StringExpression expr = stmt.getExpression();
+        Expression expr = stmt.getExpression();
         String identifier = stmt.getIdentifier().getValue();
-        Integer offset = tableStack.getOffset(identifier);
+        VarInfo info = tableStack.getVarInfo(identifier);
+        String type;
+        Integer offset;
+        String register = expr.asmRegister();
 
-        if (offset != -1)
+        if (info != null)
         {
-            a += strExpressionAssembly(expr, "ebx");
-            a += "\tmov [ebp + " + offset.toString() + "], ebx\n";
+            type = info.getType();
+            offset = info.getOffset();
 
-            updateStringLength(stmt.getIdentifier().getValue(), expr);
+            a += expr.accept(this);
+
+            if (register.startsWith("xmm"))
+            {
+                a += "\tmovss ";
+            }
+            else
+            {
+                a += "\tmov ";
+            }
+
+            a += "[ebp + " + offset.toString() + "], " + register + "\n";
+
+            if (type.equals(Tokenizer.TYPE_STRING))
+            {
+                updateStringLength(identifier, (StringExpression)stmt.getExpression());
+            }
             
             return a;
         }
 
-        throw new CompileException("Unknown identifier: " + identifier);
-    }
-
-    public String visit(NumReassignment stmt) throws CompileException
-    {
-        String a = "";
-        String identifier = stmt.getIdentifier().getValue();
-        Integer offset = tableStack.getOffset(identifier);
-
-        if (offset != -1)
-        {
-            if (stmt.getExpression().isFloat())
-            {
-                a += numExpressionAssembly(stmt.getExpression(), "xmm0", true);
-                a += a += "\tmovss [ebp + " + offset.toString() + "], xmm0\n";
-            }
-            else
-            {
-                a += numExpressionAssembly(stmt.getExpression(), "ebx", false);
-                a += "\tmov [ebp + " + offset.toString() + "], ebx\n";
-            }
-
-            return a;
-        }
-
-        throw new CompileException("Unknown identifier: " + identifier);
-    }
-
-    public String visit(CharReassignment stmt) throws CompileException
-    {
-        String a = "";
-        String identifier = stmt.getIdentifier().getValue();
-        Integer offset = tableStack.getOffset(identifier);
-
-        if (offset != -1)
-        {
-            a += numExpressionAssembly( stmt.getExpression(), "ebx", false );
-            a += "\tmov [ebp + " + offset.toString() + "], bl\n";
-            return a;
-        }
-
-        throw new CompileException("Unknown identifier: " + identifier);
+        return a;
     }
 
     public String visit(PrintStatement stmt) throws CompileException 
@@ -263,6 +263,7 @@ public class AssemblyGenerator implements StatementVisitor {
         StringExpression expr = stmt.getExpression();
         Token exprToken = expr.getToken();
         String dataLen;
+        VarInfo info;
 
         String a = "";
 
@@ -281,7 +282,14 @@ public class AssemblyGenerator implements StatementVisitor {
             break;
 
             case IDENTIFIER:
-            dataLen = tableStack.getVarInfo(exprToken.getValue()).getMetaData(STR_SIZE_MD);
+            info = tableStack.getVarInfo(exprToken.getValue());
+
+            if (info == null)
+            {
+                throw new CompileException("Unknown identifier: " + exprToken.getValue());
+            }
+
+            dataLen = info.getMetaData(STR_SIZE_MD);
 
             a += "\tmov edx, " + dataLen + "\n";
             a += handleIdentifier(expr, "ecx");
@@ -300,62 +308,18 @@ public class AssemblyGenerator implements StatementVisitor {
         String a = "";
 
         a += "\tmov eax, 1\n";
-        a += numExpressionAssembly(stmt.getExpression(), "ebx", false);
+        a += visit(stmt.getExpression(), "ebx", false);
         a += "\tint 0x80\n\n";
 
         return a;
     }
 
-    private void updateStringLength(String identifier, StringExpression expr) throws CompileException
-    {
-        switch (expr.getToken().getType())
-        {
-            case LITERAL_STR:
-            tableStack.getVarInfo(identifier).updateMetaData(STR_SIZE_MD, Integer.toString(expr.getToken().getValue().length()));
-            break;
-
-            case IDENTIFIER:
-            tableStack.getVarInfo(identifier).updateMetaData(STR_SIZE_MD, tableStack.getVarInfo(identifier).getMetaData(STR_SIZE_MD));
-            break;
-
-            default:
-            throw new CompileException("Could not update string length of " + identifier);
-        }
-    }
-
-    // Loads the memory location of a string literal into a given register
-    private String handleStringLiteral(StringExpression expr, String register) throws CompileException 
-    {
-        String a = "";
-        String str = expr.getToken().getValue();
-        String type = parser.getLitTable().getLiteralType(str);
-        String label = parser.getLitTable().getLiteralLabel(str);
-
-        if (!type.equals(Tokenizer.TYPE_STRING) || label == null)
-        {
-            throw new CompileException("Could not resolve string literal: " + str);
-        }
-
-        a += "\tlea " + register + ", " + label + "\n";
-    
-        return a;
-    }  
-    
-    // Finds the memory location of the string pointed to by an identifier, and puts the result in the given register 
-    private String handleIdentifier(StringExpression expr, String register) throws CompileException 
-    {
-        Integer offset = tableStack.getOffset(expr.getToken().getValue());
-
-        if (offset != -1)
-        {
-            return "\tmov " + register + ", [ebp + " + offset.toString() + "]\n";
-        }
-
-        throw new CompileException("Unknown identifier: " + expr.getToken().getValue());
-    }
+    /*
+     EXPRESSION VISITOR FUNCTIONS 
+    */
     
     // Handles a string expression, puts the memory location of the resulting string into the given register
-    private String strExpressionAssembly(StringExpression expr, String register) throws CompileException 
+    public String visit(StringExpression expr, String register) throws CompileException 
     {
         String a = "";
         switch (expr.getToken().getType()) 
@@ -375,7 +339,7 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }    
 
-    private String numExpressionAssembly(NumExpression expr, String register, boolean floatMode) throws CompileException
+    public String visit(NumExpression expr, String register, boolean floatMode) throws CompileException
     {
         String a = "";
 
@@ -388,7 +352,7 @@ public class AssemblyGenerator implements StatementVisitor {
         if (floatMode)
         {
             // evaluate left hand side, put into register
-            a += numExpressionAssembly(expr.getLeft(), register, floatMode);
+            a += visit(expr.getLeft(), register, floatMode);
 
             // preserve xmm5 and register
             a += "\tsub esp, 4\n";
@@ -397,7 +361,7 @@ public class AssemblyGenerator implements StatementVisitor {
             a += "\tmovss [esp], " + register + "\n";
 
             // evaluate right hand side, put into register
-            a += numExpressionAssembly(expr.getRight(), register, floatMode);
+            a += visit(expr.getRight(), register, floatMode);
 
             // get the left hand side off the stack, and into xmm5
             a += "\tmovss xmm5, [esp]\n";
@@ -423,14 +387,14 @@ public class AssemblyGenerator implements StatementVisitor {
         else
         {
             // Evaluate left hand side, put into register
-            a += numExpressionAssembly(expr.getLeft(), register, floatMode);
+            a += visit(expr.getLeft(), register, floatMode);
 
             // Preserve ecx and register
             a += "\tpush ecx\n";
             a += "\tpush " + register + "\n";
 
             // Evalute right hand side, put into register
-            a += numExpressionAssembly(expr.getRight(), register, floatMode);
+            a += visit(expr.getRight(), register, floatMode);
 
             // Get left hand side off of the stack
             a += "\tpop ecx\n";
@@ -455,6 +419,9 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }
 
+    /*
+     NUMBER EXPRESSION HELPER FUNCTIONS 
+    */
     private String numTermAssembly(NumTerm term, String register, boolean floatMode) throws CompileException
     {
         String a = "";
@@ -662,7 +629,7 @@ public class AssemblyGenerator implements StatementVisitor {
         }
         else
         {
-            a += numExpressionAssembly(expr, register, floatMode);
+            a += visit(expr, register, floatMode);
         }
 
         if (factor.isNegative()) 
@@ -700,61 +667,67 @@ public class AssemblyGenerator implements StatementVisitor {
         return a;
     }
 
-    private String generatePreamble()
+    /*
+     STRING EXPRESSION HELPER FUNCTIONS
+    */
+    private void updateStringLength(String identifier, StringExpression expr) throws CompileException
     {
-        String a = "";
+        VarInfo info = tableStack.getVarInfo(identifier);
 
-        a += "section .text\n";
-        a += "global _start\n\n";
-        a += "_start:\n";
-
-        return a;
-    }
-
-    private String generateDataSegment() throws CompileException
-    {
-        String a = "";
-        Iterator<String> literalIterator = parser.getLitTable().getLiteralIterator();
-        int labelCount = 0;
-
-        a += "section .data\n";
-
-        while (literalIterator.hasNext())
+        if (info == null)
         {
-            String current = literalIterator.next();
-            String label = "lit" + Integer.toString(labelCount);
-            String type = parser.getLitTable().getLiteralType(current);
-            
-            switch (type)
-            {
-                case Tokenizer.TYPE_STRING:
-                a += label + " db " + stringToAsmLiteral(current) + "\n";
-                break;
-
-                case Tokenizer.TYPE_FLOAT:
-                a += label + " dd " + current + "\n";
-                break;
-
-                default:
-                throw new CompileException("Unknown literal type: " + type);
-            }
-
-            parser.getLitTable().addLabelForLiteral(current, label);
-            labelCount++;
+            throw new CompileException("Unknown identifier: " + identifier);
         }
 
-        //a += PTR_DATA + " db " + parser.getSymbolTable().getAllDataSize() + " dup(0)\n";
-        // a += BUFFER + " db " + BUFFER_SIZE + " dup(0)\n";
-        a += FLOAT_NEG_MASK + " dd 0x80000000\n";
+        switch (expr.getToken().getType())
+        {
+            case LITERAL_STR:
+            info.updateMetaData(STR_SIZE_MD, Integer.toString(expr.getToken().getValue().length()));
+            break;
 
+            case IDENTIFIER:
+            info.updateMetaData(STR_SIZE_MD, tableStack.getVarInfo(identifier).getMetaData(STR_SIZE_MD));
+            break;
+
+            default:
+            throw new CompileException("Could not update string length of " + identifier);
+        }
+    }
+
+    // Loads the memory location of a string literal into a given register
+    private String handleStringLiteral(StringExpression expr, String register) throws CompileException 
+    {
+        String a = "";
+        String str = expr.getToken().getValue();
+        String type = parser.getLitTable().getLiteralType(str);
+        String label = parser.getLitTable().getLiteralLabel(str);
+
+        if (!type.equals(Tokenizer.TYPE_STRING) || label == null)
+        {
+            throw new CompileException("Could not resolve string literal: " + str);
+        }
+
+        a += "\tlea " + register + ", " + label + "\n";
+    
         return a;
+    }  
+    
+    // Finds the memory location of the string pointed to by an identifier, and puts the result in the given register 
+    private String handleIdentifier(StringExpression expr, String register) throws CompileException 
+    {
+        Integer offset = tableStack.getOffset(expr.getToken().getValue());
+
+        if (offset != -1)
+        {
+            return "\tmov " + register + ", [ebp + " + offset.toString() + "]\n";
+        }
+
+        throw new CompileException("Unknown identifier: " + expr.getToken().getValue());
     }
 
     private String stringToAsmLiteral(String inputString) {
-        // Use StringBuilder for efficient string concatenation
         String asmLiteral = "";
         
-        // Iterate through each character in the input string
         for (char c : inputString.toCharArray()) 
         {
             switch (c) 

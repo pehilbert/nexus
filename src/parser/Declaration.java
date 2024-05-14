@@ -1,19 +1,19 @@
 package parser;
 
+import codegen.CompileException;
+import codegen.AssemblyVisitor;
 import tokenizer.Token;
 
-public abstract class Declaration implements Statement {
+public class Declaration implements Statement {
     private Token typeToken;
     private Token identifierToken;
+    private Expression expression;
 
-    public void setType(Token type)
+    public Declaration(Token type, Token identifier, Expression expr)
     {
         typeToken = type;
-    }
-
-    public void setIdentifier(Token identifier)
-    {
         identifierToken = identifier;
+        expression = expr;
     }
 
     public Token getType()
@@ -26,10 +26,18 @@ public abstract class Declaration implements Statement {
         return identifierToken;
     }
 
-    public abstract Expression getExpression();
+    public Expression getExpression()
+    {
+        return expression;
+    }
 
     public void printStatement()
     {
         System.out.println(typeToken.getValue() + " declaration: " + identifierToken.getValue() + " = " + getExpression().toString());
+    }
+
+    public String accept(AssemblyVisitor visitor) throws CompileException
+    {
+        return visitor.visit(this);
     }
 }

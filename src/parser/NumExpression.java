@@ -1,5 +1,7 @@
 package parser;
 
+import codegen.AssemblyVisitor;
+import codegen.CompileException;
 import tokenizer.Token;
 
 public class NumExpression implements Expression
@@ -47,6 +49,21 @@ public class NumExpression implements Expression
     public boolean isFloat()
     {
         return floatExpr;
+    }
+
+    public String asmRegister()
+    {
+        if (floatExpr)
+        {
+            return "xmm0";
+        }
+
+        return "ebx";
+    }
+
+    public String accept(AssemblyVisitor visitor) throws CompileException
+    {
+        return visitor.visit(this, asmRegister(), floatExpr);
     }
 
     public String toString()

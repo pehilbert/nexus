@@ -3,7 +3,7 @@ package parser;
 import java.util.List;
 
 import codegen.CompileException;
-import codegen.StatementVisitor;
+import codegen.AssemblyVisitor;
 
 import java.util.ArrayList;
 
@@ -110,7 +110,7 @@ public class FunctionDeclaration implements Statement
         }
     }
 
-    public String accept(StatementVisitor visitor) throws CompileException
+    public String accept(AssemblyVisitor visitor) throws CompileException
     {
         return visitor.visit(this);
     }

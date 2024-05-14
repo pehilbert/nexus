@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import codegen.CompileException;
-import codegen.StatementVisitor;
+import codegen.AssemblyVisitor;
 
 public class Scope implements Statement {
     private List<Statement> statements;
@@ -46,7 +46,7 @@ public class Scope implements Statement {
         System.out.println("}");
     }
 
-    public String accept(StatementVisitor visitor) throws CompileException
+    public String accept(AssemblyVisitor visitor) throws CompileException
     {
         return visitor.visit(this);
     }

@@ -1,7 +1,7 @@
 package parser;
 
 import codegen.CompileException;
-import codegen.StatementVisitor;
+import codegen.AssemblyVisitor;
 
 public class PrintStatement implements Statement 
 {
@@ -22,7 +22,7 @@ public class PrintStatement implements Statement
         return expression;
     }
 
-    public String accept(StatementVisitor visitor) throws CompileException
+    public String accept(AssemblyVisitor visitor) throws CompileException
     {
         try
         {

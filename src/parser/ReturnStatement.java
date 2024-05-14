@@ -1,7 +1,7 @@
 package parser;
 
 import codegen.CompileException;
-import codegen.StatementVisitor;
+import codegen.AssemblyVisitor;
 
 public class ReturnStatement implements Statement {
     private Expression expression;
@@ -16,7 +16,7 @@ public class ReturnStatement implements Statement {
         System.out.println("Return statement: " + expression.toString());
     }
 
-    public String accept(StatementVisitor visitor) throws CompileException
+    public String accept(AssemblyVisitor visitor) throws CompileException
     {
         try
         {

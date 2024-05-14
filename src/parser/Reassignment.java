@@ -1,9 +1,18 @@
 package parser;
 
+import codegen.CompileException;
+import codegen.AssemblyVisitor;
 import tokenizer.Token;
 
-public abstract class Reassignment implements Statement {
+public class Reassignment implements Statement {
     private Token identifierToken;
+    private Expression expression;
+
+    public Reassignment(Token identifier, Expression expr)
+    {
+        identifierToken = identifier;
+        expression = expr;
+    }
 
     public Token getIdentifier()
     {
@@ -15,10 +24,18 @@ public abstract class Reassignment implements Statement {
         identifierToken = identifier;
     }
 
-    public abstract Expression getExpression();
+    public Expression getExpression()
+    {
+        return expression;
+    }
 
     public void printStatement()
     {
         System.out.println(identifierToken.getValue() + " reassigned to " + getExpression().toString());
+    }
+
+    public String accept(AssemblyVisitor visitor) throws CompileException
+    {
+        return visitor.visit(this);
     }
 }

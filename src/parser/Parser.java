@@ -187,48 +187,7 @@ public class Parser
                         if (peek() != null && peek().getType() == TokenType.EQUALS) 
                         {
                             consume();
-
-                            switch (typeToken.getValue())
-                            {
-                                case Tokenizer.TYPE_INT:
-                                NumExpression intExpression = parseNumExpression();
-
-                                if (!intExpression.isFloat())
-                                {
-                                    newDeclaration = new NumDeclaration(typeToken, identifierToken, intExpression);
-                                    break;
-                                }
-                                else
-                                {
-                                    throw new ParseException("Cannot convert float expression to int", typeToken);
-                                }
-
-                                case Tokenizer.TYPE_FLOAT:
-                                NumExpression floatExpression = parseNumExpression();
-                                newDeclaration = new NumDeclaration(typeToken, identifierToken, floatExpression);
-                                break;
-
-                                case Tokenizer.TYPE_CHAR:
-                                NumExpression charExpression = parseNumExpression();
-
-                                if (!charExpression.isFloat())
-                                {
-                                    newDeclaration = new CharDeclaration(typeToken, identifierToken, charExpression);
-                                    break;
-                                }
-                                else
-                                {
-                                    throw new ParseException("Cannot convert float expression to char", typeToken);
-                                }
-
-                                case Tokenizer.TYPE_STRING:
-                                StringExpression strExpression = parseStringExpression();
-                                newDeclaration = new StringDeclaration(typeToken, identifierToken, strExpression);
-                                break;
-
-                                default:
-                                throw new ParseException("Unknown data type: " + typeToken.getValue(), typeToken);
-                            }
+                            newDeclaration = new Declaration(typeToken, identifierToken, parseExpression(typeToken.getValue(), peek()));
                             
                             if ( peek() != null && peek().getType() == TokenType.SEMICOLON ) 
                             {
@@ -292,47 +251,7 @@ public class Parser
 
                     if (info != null)
                     {
-                        switch (info.getType())
-                        {
-                            case Tokenizer.TYPE_INT:
-                            NumExpression intExpression = parseNumExpression();
-
-                            if (!intExpression.isFloat())
-                            {
-                                newReassignment = new NumReassignment(identifier, intExpression);
-                                break;
-                            }
-                            else
-                            {
-                                throw new ParseException("Cannot convert float expression to int", identifier);
-                            }
-
-                            case Tokenizer.TYPE_FLOAT:
-                            NumExpression floatExpression = parseNumExpression();
-                            newReassignment = new NumReassignment(identifier, floatExpression);
-                            break;
-
-                            case Tokenizer.TYPE_CHAR:
-                            NumExpression charExpression = parseNumExpression();
-
-                            if (!charExpression.isFloat())
-                            {
-                                newReassignment = new NumReassignment(identifier, charExpression);
-                                break;
-                            }
-                            else
-                            {
-                                throw new ParseException("Cannot convert float expression to char", identifier);
-                            }
-
-                            case Tokenizer.TYPE_STRING:
-                            StringExpression strExpression = parseStringExpression();
-                            newReassignment = new StringReassignment(identifier, strExpression);
-                            break;
-
-                            default:
-                            throw new ParseException("Unknown type of identifier '" + identifier.getValue() + "': " + info.getType(), identifier);
-                        }
+                        newReassignment = new Reassignment(identifier, parseExpression(info.getType(), peek()));
 
                         if (peek().getType() == TokenType.SEMICOLON)
                         {
@@ -570,6 +489,7 @@ public class Parser
 
                 function = fTableStack.getFunctionDeclaration(functionName);
 
+                // I dont know how this would be possible but it's there anyway 
                 if (function == null)
                 {
                     throw new ParseException("Attempt to return in function that doesn't exist?", peek());
