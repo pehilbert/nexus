@@ -42,7 +42,7 @@ public class Tokenizer {
     public static final String TYPE_CHAR = "char";
     public static final String TYPE_STRING = "str";
     public static final String TYPE_VOID = "void";
-    public static final String FUNCTION = "function";
+    public static final String RETURN = "return";
 
     public Tokenizer(String inStr)
     {
@@ -363,8 +363,8 @@ public class Tokenizer {
                 case PRINT:
                 return new Token(TokenType.PRINT, test, currentLine, currentCol - test.length());
 
-                case FUNCTION:
-                return new Token(TokenType.FUNCTION, test, currentLine, currentCol - test.length());
+                case RETURN:
+                return new Token(TokenType.RETURN, test, currentLine, currentCol - test.length());
 
                 case TYPE_INT:
                 case TYPE_FLOAT:

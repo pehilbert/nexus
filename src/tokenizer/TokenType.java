@@ -9,7 +9,7 @@ public enum TokenType
     LITERAL_STR,
 
     IDENTIFIER, 
-    FUNCTION,
+    RETURN,
     EXIT,
     PRINT,
 
