@@ -377,7 +377,7 @@ public class Parser
                             // make sure function isn't already declared
                             if (fTableStack.getFunctionDeclaration(functionName.getValue()) != null)
                             {
-                                throw new ParseException("Redeclaration of the function '" + functionName + "'");
+                                throw new ParseException("Redeclaration of the function '" + functionName.getValue() + "'", returnType);
                             }
 
                             // add function to table and return declaration statement
@@ -388,25 +388,32 @@ public class Parser
                         // otherwise, if there is an open curly brace, parse the scope
                         if (peek().getType() == TokenType.OPEN_BRACE)
                         {
-                            // get the scope for the function
-                            newDeclaration.setScope(parseScope());
-
                             FunctionDeclaration existingDeclaration = fTableStack.getFunctionDeclaration(functionName.getValue());
 
                             // check if the function is already declared and there's a scope for it, in this case, there's an error
                             if (existingDeclaration != null && existingDeclaration.getScope() != null)
                             {
-                                throw new ParseException("Attempt to redefine function '" + functionName + "'");
+                                throw new ParseException("Attempt to redefine function '" + functionName.getValue() + "'", returnType);
                             }
 
                             // if the definitions are inconsistent, there's an error
                             if (existingDeclaration != null && !newDeclaration.equals(existingDeclaration))
                             {
-                                throw new ParseException("Inconsistent prototype and implementation for function '" + functionName + "'");
+                                throw new ParseException("Inconsistent prototype and implementation for function '" + functionName.getValue() + "'", returnType);
                             }
 
-                            // add function to table and return declaration
+                            // set a placeholder scope so that if the function is redefined in the function body, it is not allowed
+                            newDeclaration.setScope(new Scope());
+
+                            // put in the table with the placeholder scope
                             fTableStack.peek().put(functionName.getValue(), newDeclaration);
+
+                            // get the actual scope for the function
+                            newDeclaration.setScope(parseScope());
+
+                            // update table with the actual parsed scope
+                            fTableStack.peek().put(functionName.getValue(), newDeclaration);
+                            
                             return newDeclaration;
                         }
 
