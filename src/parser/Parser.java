@@ -15,7 +15,7 @@ import tokenizer.Tokenizer;
 
 public class Parser 
 {
-     private Scope globalScope = new Scope();
+     private Scope globalScope = new Scope(null);
      private List<Token> tokenList = new ArrayList<Token>();
      private TableStack tableStack = new TableStack();
      private FunctionTableStack fTableStack = new FunctionTableStack();
@@ -37,7 +37,7 @@ public class Parser
 
         while (!exit && tokenPos < tokenList.size())
         {
-            globalScope.addStatement(parseStatement());
+            globalScope.addStatement(parseStatement(null));
         }
 
         return !exit;
@@ -63,7 +63,7 @@ public class Parser
         return litTable;
      }
 
-     private Statement parseStatement() throws ParseException
+     private Statement parseStatement(String functionName) throws ParseException
      {
         try
         {
@@ -72,7 +72,7 @@ public class Parser
                 switch( peek().getType() )
                 {
                     case OPEN_BRACE:
-                    return parseScope();
+                    return parseScope(functionName);
 
                     case TYPE:
                     if (peek(2) != null && peek(2).getType() == TokenType.EQUALS)
@@ -108,9 +108,9 @@ public class Parser
         }
      }
 
-     private Scope parseScope() throws ParseException
+     private Scope parseScope(String functionName) throws ParseException
      {
-        Scope newScope = new Scope();
+        Scope newScope = new Scope(functionName);
         tableStack.push(new SymbolTable());
         fTableStack.pushEmptyTable();
 
@@ -120,7 +120,7 @@ public class Parser
 
             while (peek() != null && peek().getType() != TokenType.CLOSE_BRACE)
             {
-                newScope.addStatement(parseStatement());
+                newScope.addStatement(parseStatement(functionName));
             }
             
             if (peek() == null)
@@ -403,13 +403,13 @@ public class Parser
                             }
 
                             // set a placeholder scope so that if the function is redefined in the function body, it is not allowed
-                            newDeclaration.setScope(new Scope());
+                            newDeclaration.setScope(new Scope(functionName.getValue()));
 
                             // put in the table with the placeholder scope
                             fTableStack.peek().put(functionName.getValue(), newDeclaration);
 
                             // get the actual scope for the function
-                            newDeclaration.setScope(parseScope());
+                            newDeclaration.setScope(parseScope(functionName.getValue()));
 
                             // update table with the actual parsed scope
                             fTableStack.peek().put(functionName.getValue(), newDeclaration);

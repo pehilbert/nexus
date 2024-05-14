@@ -9,10 +9,12 @@ import codegen.StatementVisitor;
 
 public class Scope implements Statement {
     private List<Statement> statements;
+    private String functionName;
 
-    public Scope()
+    public Scope(String funcName)
     {
         statements = new ArrayList<Statement>();
+        functionName = funcName;
     }
 
     public void addStatement(Statement newStatement)
@@ -25,11 +27,16 @@ public class Scope implements Statement {
         return statements.iterator();
     }
 
+    public String getFunctionName()
+    {
+        return functionName;
+    }
+
     public void printStatement()
     {
         Iterator<Statement> i = getIterator();
 
-        System.out.println("Scope: {");
+        System.out.println("Scope for function " + functionName + ": {");
 
         while (i.hasNext())
         {
