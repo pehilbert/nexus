@@ -52,9 +52,37 @@ public class FunctionDeclaration implements Statement
         funcScope = inScope;
     }
 
+    public boolean equals(FunctionDeclaration other)
+    {
+        if (!returnType.equals(other.getReturnType()))
+        {
+            return false;
+        }
+
+        if (!name.equals(other.getName()))
+        {
+            return false;
+        }
+
+        if (params.size() != other.getParams().size())
+        {
+            return false;
+        }
+
+        for (int i = 0; i < params.size(); i++)
+        {
+            if (!params.get(i).equals(other.getParams().get(i)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public void printStatement()
     {
-        System.out.println("Function declaration:" + returnType + " " + name);
+        System.out.println("Function declaration: " + returnType + " " + name);
         System.out.print("Parameters: ");
         
         if (params.size() == 0)
@@ -75,6 +103,10 @@ public class FunctionDeclaration implements Statement
         if (funcScope != null)
         {
             funcScope.printStatement();
+        }
+        else
+        {
+            System.out.println("PROTOTYPE");
         }
     }
 

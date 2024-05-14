@@ -26,9 +26,14 @@ public class FunctionTableStack
         return stack.get(stack.size() - 1);
     }
 
+    public Map<String, FunctionDeclaration> pop()
+    {
+        return stack.remove(stack.size() - 1);
+    }
+
     public FunctionDeclaration getFunctionDeclaration(String identifier)
     {
-        for (int i = stack.size() - 1; i >= 0; i++)
+        for (int i = stack.size() - 2; i >= 0; i++)
         {
             if (stack.get(i).containsKey(identifier))
             {

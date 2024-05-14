@@ -20,4 +20,9 @@ public class Parameter
     {
         return identifier;
     }
+
+    public boolean equals(Parameter other)
+    {
+        return type.equals(other.getType()) && identifier.equals(other.getIdentifier());
+    }
 }

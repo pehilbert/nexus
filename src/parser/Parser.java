@@ -3,6 +3,7 @@ package parser;
 import java.util.List;
 
 import codegen.TableStack;
+import codegen.FunctionTableStack;
 import codegen.SymbolTable;
 import codegen.VarInfo;
 
@@ -17,6 +18,7 @@ public class Parser
      private Scope globalScope = new Scope();
      private List<Token> tokenList = new ArrayList<Token>();
      private TableStack tableStack = new TableStack();
+     private FunctionTableStack fTableStack = new FunctionTableStack();
      private LiteralTable litTable = new LiteralTable();
      private int tokenPos;
 
@@ -31,6 +33,7 @@ public class Parser
         boolean exit = false;
 
         tableStack.push(new SymbolTable());
+        fTableStack.pushEmptyTable();
 
         while (!exit && tokenPos < tokenList.size())
         {
@@ -72,7 +75,15 @@ public class Parser
                     return parseScope();
 
                     case TYPE:
-                    return parseDeclaration();
+                    if (peek(2) != null && peek(2).getType() == TokenType.EQUALS)
+                    {
+                        return parseDeclaration();
+                    }
+
+                    if (peek(2) != null && peek(2).getType() == TokenType.OPEN_PAREN)
+                    {
+                        return parseFunctionDeclaration();
+                    }
 
                     case IDENTIFIER:
                     return parseReassignment();
@@ -84,7 +95,7 @@ public class Parser
                     return parseExitStatement();
 
                     default:
-                    throw new ParseException("Expected 'int' or 'exit', instead got " + 
+                    throw new ParseException("Invalid use of token: " + 
                                             peek().getValue(), peek());
                 }
             }
@@ -101,6 +112,7 @@ public class Parser
      {
         Scope newScope = new Scope();
         tableStack.push(new SymbolTable());
+        fTableStack.pushEmptyTable();
 
         if (peek().getType() == TokenType.OPEN_BRACE)
         {
@@ -118,6 +130,7 @@ public class Parser
 
             consume();
             tableStack.pop();
+            fTableStack.pop();
 
             return newScope;
         }
@@ -326,6 +339,149 @@ public class Parser
         }
      }
 
+     private FunctionDeclaration parseFunctionDeclaration() throws ParseException
+     {
+        Token functionName;
+        Token returnType;
+        FunctionDeclaration newDeclaration;
+
+        if (peek() != null)
+        {
+            if (peek().getType() == TokenType.TYPE)
+            {
+                returnType = consume();
+
+                if (peek().getType() == TokenType.IDENTIFIER)
+                {
+                    functionName = consume();
+
+                    if (peek().getType() == TokenType.OPEN_PAREN)
+                    {
+                        // consume open paren and create new function declaration statement
+                        consume();
+                        newDeclaration = new FunctionDeclaration(functionName.getValue(), returnType.getValue());
+
+                        // add parameters to the declaration
+                        parseParameters(newDeclaration);
+
+                        // consume close paren
+                        consume();
+
+                        // if there is a semicolon next, leave the scope null and return the new declaration
+                        if (peek().getType() == TokenType.SEMICOLON)
+                        {
+                            // consume semicolon
+
+                            consume();
+
+                            // make sure function isn't already declared
+                            if (fTableStack.getFunctionDeclaration(functionName.getValue()) != null)
+                            {
+                                throw new ParseException("Redeclaration of the function '" + functionName + "'");
+                            }
+
+                            // add function to table and return declaration statement
+                            fTableStack.peek().put(functionName.getValue(), newDeclaration);
+                            return newDeclaration;
+                        }
+
+                        // otherwise, if there is an open curly brace, parse the scope
+                        if (peek().getType() == TokenType.OPEN_BRACE)
+                        {
+                            // get the scope for the function
+                            newDeclaration.setScope(parseScope());
+
+                            FunctionDeclaration existingDeclaration = fTableStack.getFunctionDeclaration(functionName.getValue());
+
+                            // check if the function is already declared and there's a scope for it, in this case, there's an error
+                            if (existingDeclaration != null && existingDeclaration.getScope() != null)
+                            {
+                                throw new ParseException("Attempt to redefine function '" + functionName + "'");
+                            }
+
+                            // if the definitions are inconsistent, there's an error
+                            if (existingDeclaration != null && !newDeclaration.equals(existingDeclaration))
+                            {
+                                throw new ParseException("Inconsistent prototype and implementation for function '" + functionName + "'");
+                            }
+
+                            // add function to table and return declaration
+                            fTableStack.peek().put(functionName.getValue(), newDeclaration);
+                            return newDeclaration;
+                        }
+
+                        // if none of those are true, there's an error
+                        throw new ParseException("Expected ';' or '{', got " + peek().getValue(), peek());
+                    }
+                    else
+                    {
+                        throw new ParseException("Expected ')', got " + peek().getValue(), peek());
+                    }
+                }
+                else
+                {
+                    throw new ParseException("Expected identifier, got " + peek().getValue(), peek());
+                }
+            }
+            else
+            {
+                throw new ParseException("Expected type, got " + peek().getValue(), peek());
+            }
+        }
+        else
+        {
+            throw new ParseException("Unexpected EOF");
+        }
+     } 
+
+     // parses parameters and adds them to an incomplete FunctionDeclaration
+     private void parseParameters(FunctionDeclaration incompleteDeclaration) throws ParseException
+     {
+        String type;
+        String identifier;
+
+        while (peek() != null && peek().getType() != TokenType.CLOSE_PAREN)
+        {
+            if (peek().getType() == TokenType.TYPE)
+            {
+                type = consume().getValue();
+            }
+            else
+            {
+                throw new ParseException("Expected type, got " + peek().getValue(), peek()); 
+            }
+
+            if (peek().getType() == TokenType.IDENTIFIER)
+            {
+                identifier = consume().getValue();
+            }
+            else
+            {
+                throw new ParseException("Expected identifier, got " + peek().getValue(), peek());
+            }
+
+            incompleteDeclaration.addParam(new Parameter(type, identifier));
+
+            // if the next token is not a close paren, check for a comma and consume it, otherwise there's an error
+            if (peek().getType() != TokenType.CLOSE_PAREN)
+            {
+                if (peek().getType() == TokenType.COMMA)
+                {
+                    consume();
+                }
+                else
+                {
+                    throw new ParseException("Expected ',' or ')', instead got " + peek().getValue(), peek());
+                }
+            }
+        }
+
+        if (peek() == null)
+        {
+            throw new ParseException("Unexpected EOF");
+        }
+     }
+
      private PrintStatement parsePrintStatement() throws ParseException
      {
         StringExpression expression;
@@ -515,6 +671,16 @@ public class Parser
         if (tokenPos < tokenList.size())
         {
             return tokenList.get(tokenPos);
+        }
+
+        return null;
+     }
+
+     private Token peek(int ahead)
+     {
+        if (tokenPos + ahead < tokenList.size())
+        {
+            return tokenList.get(tokenPos + ahead);
         }
 
         return null;
