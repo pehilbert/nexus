@@ -88,6 +88,9 @@ public class Parser
                     case IDENTIFIER:
                     return parseReassignment();
                     
+                    case RETURN:
+                    return parseReturnStatement(functionName);
+
                     case PRINT:
                     return parsePrintStatement();
 
@@ -484,6 +487,99 @@ public class Parser
         }
 
         if (peek() == null)
+        {
+            throw new ParseException("Unexpected EOF");
+        }
+     }
+
+     private ReturnStatement parseReturnStatement(String functionName) throws ParseException
+     {
+        FunctionDeclaration function;
+        ReturnStatement newStmt;
+
+        if (peek() != null)
+        {
+            if (peek().getType() == TokenType.RETURN)
+            {
+                if (functionName == null)
+                {
+                    throw new ParseException("Attempt to return outside of a function", peek());
+                }
+
+                function = fTableStack.getFunctionDeclaration(functionName);
+
+                if (function == null)
+                {
+                    throw new ParseException("Attempt to return in function that doesn't exist?", peek());
+                }
+
+                if (function.getReturnType().equals(Tokenizer.TYPE_VOID))
+                {
+                    throw new ParseException("Attempt to return in a void function", peek());
+                }
+
+                consume();
+
+                switch (function.getReturnType())
+                {
+                    case Tokenizer.TYPE_INT:
+                    NumExpression intExpr = parseNumExpression();
+
+                    if (!intExpr.isFloat())
+                    {
+                        newStmt = new ReturnStatement(intExpr);
+                    }
+                    else
+                    {
+                        throw new ParseException("Number expression must reduce to an int value");
+                    }
+                    
+                    break;
+
+                    case Tokenizer.TYPE_FLOAT:
+                    NumExpression floatExpr = parseNumExpression();
+                    newStmt = new ReturnStatement(floatExpr);
+                    break;
+
+                    case Tokenizer.TYPE_CHAR:
+                    NumExpression charExpr = parseNumExpression();
+
+                    if (!charExpr.isFloat())
+                    {
+                        newStmt = new ReturnStatement(charExpr);
+                    }
+                    else
+                    {
+                        throw new ParseException("Number expression must reduce to an char value");
+                    }
+
+                    break;
+
+                    case Tokenizer.TYPE_STRING:
+                    StringExpression strExpr = parseStringExpression();
+                    newStmt = new ReturnStatement(strExpr);
+                    break;
+
+                    default:
+                    throw new ParseException("Could not parse return expression", peek());
+                }
+
+                if (peek().getType() == TokenType.SEMICOLON)
+                {
+                    consume();
+                    return newStmt;
+                }
+                else
+                {
+                    throw new ParseException("Expected ';', got " + peek().getValue(), peek());
+                }
+            }
+            else
+            {
+                throw new ParseException("Expected 'return', got " + peek().getValue(), peek());
+            }
+        }
+        else
         {
             throw new ParseException("Unexpected EOF");
         }
