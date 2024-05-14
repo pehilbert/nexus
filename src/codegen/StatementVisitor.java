@@ -11,10 +11,12 @@ import parser.CharReassignment;
 import parser.StringReassignment;
 import parser.PrintStatement;
 import parser.ExitStatement;
+import parser.ReturnStatement;
 
 public interface StatementVisitor {
     String visit(Scope stmt) throws CompileException;
     String visit(FunctionDeclaration stmt) throws CompileException;
+    String visit(ReturnStatement stmt) throws CompileException;
     String visit(NumDeclaration stmt) throws CompileException;
     String visit(CharDeclaration stmt) throws CompileException;
     String visit(StringDeclaration stmt) throws CompileException;

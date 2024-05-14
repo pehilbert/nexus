@@ -13,6 +13,7 @@ import parser.NumDeclaration;
 import parser.CharDeclaration;
 import parser.ExitStatement;
 import parser.PrintStatement;
+import parser.ReturnStatement;
 import parser.Scope;
 import parser.NumExpression;
 import parser.StringExpression;
@@ -105,6 +106,11 @@ public class AssemblyGenerator implements StatementVisitor {
     }
 
     public String visit(FunctionDeclaration stmt) throws CompileException
+    {
+        return "";
+    }
+
+    public String visit(ReturnStatement stmt) throws CompileException
     {
         return "";
     }
