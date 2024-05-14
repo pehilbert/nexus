@@ -65,50 +65,43 @@ public class Parser
 
      private Statement parseStatement(String functionName) throws ParseException
      {
-        try
+        if (peek() != null)
         {
-            if (peek() != null)
+            switch( peek().getType() )
             {
-                switch( peek().getType() )
+                case OPEN_BRACE:
+                return parseScope(functionName);
+
+                case TYPE:
+                if (peek(2) != null && peek(2).getType() == TokenType.EQUALS)
                 {
-                    case OPEN_BRACE:
-                    return parseScope(functionName);
-
-                    case TYPE:
-                    if (peek(2) != null && peek(2).getType() == TokenType.EQUALS)
-                    {
-                        return parseDeclaration();
-                    }
-
-                    if (peek(2) != null && peek(2).getType() == TokenType.OPEN_PAREN)
-                    {
-                        return parseFunctionDeclaration();
-                    }
-
-                    case IDENTIFIER:
-                    return parseReassignment();
-                    
-                    case RETURN:
-                    return parseReturnStatement(functionName);
-
-                    case PRINT:
-                    return parsePrintStatement();
-
-                    case EXIT:
-                    return parseExitStatement();
-
-                    default:
-                    throw new ParseException("Invalid use of token: " + 
-                                            peek().getValue(), peek());
+                    return parseDeclaration();
                 }
-            }
 
-            throw new ParseException("Expected statement, got EOF");
+                if (peek(2) != null && peek(2).getType() == TokenType.OPEN_PAREN)
+                {
+                    return parseFunctionDeclaration();
+                }
+
+                case IDENTIFIER:
+                return parseReassignment();
+                
+                case RETURN:
+                return parseReturnStatement(functionName);
+
+                case PRINT:
+                return parsePrintStatement();
+
+                case EXIT:
+                return parseExitStatement();
+
+                default:
+                throw new ParseException("Invalid use of token: " + 
+                                        peek().getValue(), peek());
+            }
         }
-        catch (ParseException exception)
-        {
-            throw exception;
-        }
+
+        throw new ParseException("Expected statement, got EOF");
      }
 
      private Scope parseScope(String functionName) throws ParseException
@@ -172,62 +165,55 @@ public class Parser
         Token identifierToken;
         Declaration newDeclaration;
 
-        try 
+        if (peek() != null) 
         {
-            if (peek() != null) 
+            if (peek().getType() == TokenType.TYPE)
             {
-                if (peek().getType() == TokenType.TYPE)
+                typeToken = consume();
+
+                if (peek().getType() == TokenType.IDENTIFIER) 
                 {
-                    typeToken = consume();
+                    identifierToken = consume();
 
-                    if (peek().getType() == TokenType.IDENTIFIER) 
+                    if (peek() != null && peek().getType() == TokenType.EQUALS) 
                     {
-                        identifierToken = consume();
-
-                        if (peek() != null && peek().getType() == TokenType.EQUALS) 
+                        consume();
+                        newDeclaration = new Declaration(typeToken, identifierToken, parseExpression(typeToken.getValue(), peek()));
+                        
+                        if ( peek() != null && peek().getType() == TokenType.SEMICOLON ) 
                         {
                             consume();
-                            newDeclaration = new Declaration(typeToken, identifierToken, parseExpression(typeToken.getValue(), peek()));
                             
-                            if ( peek() != null && peek().getType() == TokenType.SEMICOLON ) 
+                            if (!tableStack.peek().addIdentifier(typeToken.getValue(), identifierToken.getValue()))
                             {
-                                consume();
-                                
-                                if (!tableStack.peek().addIdentifier(typeToken.getValue(), identifierToken.getValue()))
-                                {
-                                    throw new ParseException("Identifier '" + identifierToken.getValue() + "' already in use.");
-                                }
-
-                                return newDeclaration;
-                            } 
-                            else 
-                            {
-                                throw new ParseException("Expected ';', got " + peek().getValue(), peek());
+                                throw new ParseException("Identifier '" + identifierToken.getValue() + "' already in use.");
                             }
+
+                            return newDeclaration;
                         } 
                         else 
                         {
-                            throw new ParseException("Expected '=', got " + peek().getValue(), peek());
+                            throw new ParseException("Expected ';', got " + peek().getValue(), peek());
                         }
                     } 
                     else 
                     {
-                        throw new ParseException("Expected identifier after 'int', got " + peek().getValue(), peek());
+                        throw new ParseException("Expected '=', got " + peek().getValue(), peek());
                     }
-                }
-                else
+                } 
+                else 
                 {
-                    throw new ParseException("Expected data type, got " + peek().getValue(), peek());
+                    throw new ParseException("Expected identifier after 'int', got " + peek().getValue(), peek());
                 }
-            } 
-            else 
+            }
+            else
             {
-                throw new ParseException("Unexpected EOF");
+                throw new ParseException("Expected data type, got " + peek().getValue(), peek());
             }
         } 
-        catch (ParseException exception) 
+        else 
         {
-            throw exception;
+            throw new ParseException("Unexpected EOF");
         }
      }
 
@@ -308,6 +294,7 @@ public class Parser
 
             if (!charExpression.isFloat())
             {
+                charExpression.makeChar();
                 return charExpression;
             }
             else

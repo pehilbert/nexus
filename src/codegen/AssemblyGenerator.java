@@ -188,9 +188,13 @@ public class AssemblyGenerator implements AssemblyVisitor {
             throw new CompileException("Unknown size of type " + stmt.getType().getValue());
         }
 
+        // evaluate the expression, and hold the result in the asmRegister
         a += expr.accept(this);
+
+        // push result onto the stack
         a += "\tsub esp, " + dataSize.toString() + "\n";
         
+        // make sure to use the correct move instruction for the register
         if (register.startsWith("xmm"))
         {
             a += "\tmovss ";
@@ -202,6 +206,7 @@ public class AssemblyGenerator implements AssemblyVisitor {
 
         a += "[esp], " + register + "\n";
 
+        // add to symbol table
         if (!tableStack.identifierInUse(identifier))
         {
             tableStack.peek().addIdentifier(type, identifier, dataSize);
@@ -234,8 +239,10 @@ public class AssemblyGenerator implements AssemblyVisitor {
             type = info.getType();
             offset = info.getOffset();
 
+            // evaluate the expression and hold the result in the asmRegister of expression
             a += expr.accept(this);
 
+            // make sure to use the correct move instruction for the register
             if (register.startsWith("xmm"))
             {
                 a += "\tmovss ";
@@ -245,6 +252,7 @@ public class AssemblyGenerator implements AssemblyVisitor {
                 a += "\tmov ";
             }
 
+            // update the memory location in the stack
             a += "[ebp + " + offset.toString() + "], " + register + "\n";
 
             if (type.equals(Tokenizer.TYPE_STRING))

@@ -11,11 +11,13 @@ public class NumExpression implements Expression
     private Token operator;
     private NumExpression rhs;
     private boolean floatExpr;
+    private boolean charExpr;
 
     public NumExpression(NumTerm inTerm)
     {
         term = inTerm;
         floatExpr = inTerm.isFloat();
+        charExpr = false;
     }
 
     public NumExpression(NumExpression left, Token inOperator, NumExpression right)
@@ -24,6 +26,7 @@ public class NumExpression implements Expression
         operator = inOperator;
         rhs = right;
         floatExpr = left.isFloat() || right.isFloat();
+        charExpr = false;
     }
 
     public NumExpression getLeft()
@@ -51,11 +54,28 @@ public class NumExpression implements Expression
         return floatExpr;
     }
 
+    public boolean isChar()
+    {
+        return charExpr;
+    }
+
+    public void makeChar()
+    {
+        if (!floatExpr)
+        {
+            charExpr = true;
+        }
+    }
+
     public String asmRegister()
     {
         if (floatExpr)
         {
             return "xmm0";
+        }
+        else if (charExpr)
+        {
+            return "bl";
         }
 
         return "ebx";
