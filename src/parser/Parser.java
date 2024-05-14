@@ -116,6 +116,29 @@ public class Parser
         Scope newScope = new Scope(functionName);
         tableStack.push(new SymbolTable());
         fTableStack.pushEmptyTable();
+        FunctionDeclaration function;
+        List<Parameter> params;
+
+        // set up symbol table with parameters if this is a function
+        if (functionName != null)
+        {
+            function = fTableStack.getFunctionDeclaration(functionName);
+
+            if (function == null)
+            {
+                throw new ParseException("Could not get function info for function '" + functionName + "'", peek());
+            }
+
+            params = function.getParams();
+
+            for (int i = 0; i < params.size(); i++)
+            {
+                if (!tableStack.identifierInUse(params.get(i).getIdentifier()))
+                {
+                    tableStack.peek().addIdentifier(params.get(i).getType(), params.get(i).getIdentifier());
+                }
+            }
+        }
 
         if (peek().getType() == TokenType.OPEN_BRACE)
         {
@@ -342,6 +365,45 @@ public class Parser
         }
      }
 
+     private Expression parseExpression(String type, Token exprToken) throws ParseException
+     {
+        switch (type)
+        {
+            case Tokenizer.TYPE_INT:
+            NumExpression intExpression = parseNumExpression();
+
+            if (!intExpression.isFloat())
+            {
+                return intExpression;
+            }
+            else
+            {
+                throw new ParseException("Cannot convert float expression to int", exprToken);
+            }
+
+            case Tokenizer.TYPE_FLOAT:
+            return parseNumExpression();
+            
+            case Tokenizer.TYPE_CHAR:
+            NumExpression charExpression = parseNumExpression();
+
+            if (!charExpression.isFloat())
+            {
+                return charExpression;
+            }
+            else
+            {
+                throw new ParseException("Cannot convert float expression to char", exprToken);
+            }
+
+            case Tokenizer.TYPE_STRING:
+            return parseStringExpression();
+
+            default:
+            throw new ParseException("Could not resolve expression", exprToken);
+        }
+     }
+
      private FunctionDeclaration parseFunctionDeclaration() throws ParseException
      {
         Token functionName;
@@ -520,49 +582,7 @@ public class Parser
 
                 consume();
 
-                switch (function.getReturnType())
-                {
-                    case Tokenizer.TYPE_INT:
-                    NumExpression intExpr = parseNumExpression();
-
-                    if (!intExpr.isFloat())
-                    {
-                        newStmt = new ReturnStatement(intExpr);
-                    }
-                    else
-                    {
-                        throw new ParseException("Number expression must reduce to an int value");
-                    }
-                    
-                    break;
-
-                    case Tokenizer.TYPE_FLOAT:
-                    NumExpression floatExpr = parseNumExpression();
-                    newStmt = new ReturnStatement(floatExpr);
-                    break;
-
-                    case Tokenizer.TYPE_CHAR:
-                    NumExpression charExpr = parseNumExpression();
-
-                    if (!charExpr.isFloat())
-                    {
-                        newStmt = new ReturnStatement(charExpr);
-                    }
-                    else
-                    {
-                        throw new ParseException("Number expression must reduce to an char value");
-                    }
-
-                    break;
-
-                    case Tokenizer.TYPE_STRING:
-                    StringExpression strExpr = parseStringExpression();
-                    newStmt = new ReturnStatement(strExpr);
-                    break;
-
-                    default:
-                    throw new ParseException("Could not parse return expression", peek());
-                }
+                newStmt = new ReturnStatement(parseExpression(function.getReturnType(), peek()));
 
                 if (peek().getType() == TokenType.SEMICOLON)
                 {
