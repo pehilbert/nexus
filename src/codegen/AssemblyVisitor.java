@@ -1,19 +1,11 @@
 package codegen;
 
-import parser.Scope;
-import parser.FunctionDeclaration;
-import parser.CharExpression;
-import parser.Declaration;
-import parser.Reassignment;
-import parser.PrintStatement;
-import parser.ExitStatement;
-import parser.ReturnStatement;
-import parser.NumExpression;
-import parser.StringExpression;
+import parser.*;
 
 public interface AssemblyVisitor {
     String visit(Scope stmt) throws CompileException;
     String visit(FunctionDeclaration stmt) throws CompileException;
+    String visit(FunctionCall stmt) throws CompileException;
     String visit(ReturnStatement stmt) throws CompileException;
     String visit(Declaration stmt) throws CompileException;
     String visit(Reassignment stmt) throws CompileException;

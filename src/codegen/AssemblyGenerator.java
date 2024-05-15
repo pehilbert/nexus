@@ -6,24 +6,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.HashMap;
 
-import parser.Parser;
-import parser.Expression;
-import parser.Statement;
-import parser.Declaration;
-import parser.Reassignment;
-import parser.FunctionDeclaration;
-import parser.ExitStatement;
-import parser.PrintStatement;
-import parser.ReturnStatement;
-import parser.Scope;
-import parser.NumExpression;
-import parser.StringExpression;
-import parser.CharExpression;
-import parser.NumTerm;
-import parser.NumFactor;
-import tokenizer.Token;
-import tokenizer.TokenType;
-import tokenizer.Tokenizer;
+import tokenizer.*;
+import parser.*;
 
 public class AssemblyGenerator implements AssemblyVisitor {
     private Parser parser;
@@ -166,6 +150,11 @@ public class AssemblyGenerator implements AssemblyVisitor {
     }
 
     public String visit(FunctionDeclaration stmt) throws CompileException
+    {
+        return "";
+    }
+
+    public String visit(FunctionCall stmt) throws CompileException
     {
         return "";
     }

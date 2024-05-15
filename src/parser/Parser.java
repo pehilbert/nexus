@@ -84,7 +84,15 @@ public class Parser
                 }
 
                 case IDENTIFIER:
-                return parseReassignment();
+                if (peek(1) != null && peek(1).getType() == TokenType.EQUALS)
+                {
+                    return parseReassignment();
+                }
+
+                if (peek(1) != null && peek(1).getType() == TokenType.OPEN_PAREN)
+                {
+                    return parseFunctionCall(true);
+                }
                 
                 case RETURN:
                 return parseReturnStatement(functionName);
@@ -456,6 +464,94 @@ public class Parser
         if (peek() == null)
         {
             throw new ParseException("Unexpected EOF");
+        }
+     }
+
+     // parses the function call, either as a standalone statement or not
+     // if standalone, it will expect a semicolon afterwards, and not if not
+     private FunctionCall parseFunctionCall(boolean standalone) throws ParseException
+     {
+        String name;
+        FunctionCall newCall;
+
+        if (peek() != null)
+        {
+            if (peek().getType() == TokenType.IDENTIFIER)
+            {
+                name = consume().getValue();
+
+                if (peek().getType() == TokenType.OPEN_PAREN)
+                {
+                    // consume open paren and create new function call
+                    consume();
+                    newCall = new FunctionCall(name);
+
+                    // add the arguments to it
+                    parseArguments(newCall);
+
+                    // make sure it's closed with a close paren
+                    if (peek().getType() != TokenType.CLOSE_PAREN)
+                    {
+                        throw new ParseException("Expected ')' to end function call, got " + peek().getValue(), peek());
+                    }
+
+                    // consume the close paren
+                    consume();
+
+                    // check for semicolon if standalone
+                    if (standalone)
+                    {
+                        if (peek().getType() == TokenType.SEMICOLON)
+                        {
+                            consume();
+                        }
+                        else
+                        {
+                            throw new ParseException("Expected ';', got " + peek().getValue(), peek());
+                        }
+                    }
+
+                    return newCall;
+                }
+                else
+                {
+                    throw new ParseException("Expected '(', got " + peek().getValue(), peek());
+                }
+            }
+            else
+            {
+                throw new ParseException("Expected identifier, got " + peek().getValue(), peek());
+            }
+        }
+        else
+        {
+            throw new ParseException("Unexpected EOF");
+        }
+     }
+
+     private void parseArguments(FunctionCall incompleteCall) throws ParseException
+     {
+        FunctionDeclaration function = fTableStack.getFunctionDeclaration(incompleteCall.getName());
+        List<Parameter> params = function.getParams();
+        int index = 0;
+
+        while (peek() != null && index < params.size())
+        {
+            incompleteCall.addArgument(parseExpression(params.get(index).getType(), peek()));
+
+            if (index < params.size() - 1)
+            {
+                if (peek().getType() == TokenType.COMMA)
+                {
+                    consume();
+                }
+                else
+                {
+                    throw new ParseException("Expected ',' to separate arguments, got " + peek().getValue(), peek());
+                }
+            }
+
+            index++;
         }
      }
 

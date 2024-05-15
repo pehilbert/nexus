@@ -3,7 +3,7 @@
 <statement> ::= <declaration> | <reassignment> | <print_statement> | <exit_statement> | <function_declaration>
 <declaration> ::= <type> <identifier> = <expression>;
 <reassignment> ::= <identifier> = <expression>;
-<print_statement> ::= print <str_expression>;
+<print_statement> ::= print [<str_expression> | <char_expression>];
 <exit_statement> ::= exit <num_expression>;
 <function_declaration> ::= <type> <identifier>'(' <parameter>, <parameter>, ... ')' [<scope> | ';']
 <function_call> ::= <identifier>'(' <parameter>, <parameter>, ... ')'
