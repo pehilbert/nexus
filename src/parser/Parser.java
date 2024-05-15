@@ -290,11 +290,10 @@ public class Parser
             return parseNumExpression();
             
             case Tokenizer.TYPE_CHAR:
-            NumExpression charExpression = parseNumExpression();
+            CharExpression charExpression = new CharExpression(parseNumExpression());
 
-            if (!charExpression.isFloat())
+            if (!charExpression.getExpression().isFloat())
             {
-                charExpression.makeChar();
                 return charExpression;
             }
             else

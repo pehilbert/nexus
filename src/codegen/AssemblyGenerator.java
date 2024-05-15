@@ -18,6 +18,7 @@ import parser.ReturnStatement;
 import parser.Scope;
 import parser.NumExpression;
 import parser.StringExpression;
+import parser.CharExpression;
 import parser.NumTerm;
 import parser.NumFactor;
 import tokenizer.Token;
@@ -345,7 +346,19 @@ public class AssemblyGenerator implements AssemblyVisitor {
         }
 
         return a;
-    }    
+    }
+    
+    public String visit(CharExpression expr, String register) throws CompileException
+    {
+        String a = "";
+        NumExpression numExpr = expr.getExpression();
+
+        // evaluate expression in 32-bit register, and then transfer the lower 8 bits to 8-bit register
+        a += visit(numExpr, "eax", false);
+        a += "\tmov " + register + ", al\n";
+
+        return a;
+    }
 
     public String visit(NumExpression expr, String register, boolean floatMode) throws CompileException
     {
