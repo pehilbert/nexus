@@ -1,5 +1,6 @@
 package parser;
 
+import codegen.AssemblyGenerator;
 import codegen.AssemblyVisitor;
 import codegen.CompileException;
 import tokenizer.Token;
@@ -55,10 +56,10 @@ public class NumExpression implements Expression
     {
         if (floatExpr)
         {
-            return "xmm0";
+            return AssemblyGenerator.FLOAT_EXPR_REGISTER;
         }
 
-        return "eax";
+        return AssemblyGenerator.INT_EXPR_REGISTER;
     }
 
     public String accept(AssemblyVisitor visitor) throws CompileException

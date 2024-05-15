@@ -1,5 +1,6 @@
 package parser;
 
+import codegen.AssemblyGenerator;
 import codegen.AssemblyVisitor;
 import codegen.CompileException;
 
@@ -18,7 +19,7 @@ public class CharExpression implements Expression {
 
     public String asmRegister()
     {
-        return "al";
+        return AssemblyGenerator.CHAR_EXPR_REGISTER;
     }
 
     public String toString()

@@ -2,7 +2,7 @@ package parser;
 
 import tokenizer.Token;
 import tokenizer.TokenType;
-
+import codegen.AssemblyGenerator;
 import codegen.AssemblyVisitor;
 import codegen.CompileException;
 
@@ -26,7 +26,7 @@ public class StringExpression implements Expression {
 
     public String asmRegister()
     {
-        return "eax";
+        return AssemblyGenerator.STR_EXPR_REGISTER;
     }
 
     public String toString()

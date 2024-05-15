@@ -18,12 +18,17 @@ public class AssemblyGenerator implements AssemblyVisitor {
     private Integer funcLabelCount;
 
     static final String MAIN_FUNC_NAME = "main";
-
+    
     static final String STR_SIZE_MD = "strSize";
     static final String PTR_DATA = "pd";
     static final String BUFFER = "buf";
     static final String FLOAT_NEG_MASK = "nmask";
     static final int BUFFER_SIZE = 1024;
+
+    public static final String INT_EXPR_REGISTER = "eax";
+    public static final String FLOAT_EXPR_REGISTER = "xmm0";
+    public static final String CHAR_EXPR_REGISTER = "al";
+    public static final String STR_EXPR_REGISTER = "eax";
 
     static final int INT_SIZE = 4;
     static final int FLOAT_SIZE = 4;
@@ -357,11 +362,16 @@ public class AssemblyGenerator implements AssemblyVisitor {
 
         String a = "";
 
-        a += "\tmov eax, 4\n";
-        a += "\tmov ebx, 1\n";
+        // get the string and its length
         a += visit(expr, "ecx");
         a += "\tmov edx, [ecx]\n";
         a += "\tadd ecx, 4\n";
+
+        // load syscall number and 1 for stdout
+        a += "\tmov eax, 4\n";
+        a += "\tmov ebx, 1\n";
+
+        // perform syscall
         a += "\tint 0x80\n";
 
         return a;
@@ -371,8 +381,8 @@ public class AssemblyGenerator implements AssemblyVisitor {
     {
         String a = "";
 
-        a += "\tmov eax, 1\n";
         a += visit(stmt.getExpression(), "ebx", false);
+        a += "\tmov eax, 1\n";
         a += "\tint 0x80\n";
 
         return a;
@@ -680,6 +690,7 @@ public class AssemblyGenerator implements AssemblyVisitor {
         String a = "";
         Token token = factor.getToken();
         NumExpression expr = factor.getExpression();
+        FunctionCall functionCall = factor.getFunctionCall();
 
         if (token != null)
         {
@@ -765,9 +776,32 @@ public class AssemblyGenerator implements AssemblyVisitor {
                 break;
             }
         }
-        else
+        else if (expr != null)
         {
             a += visit(expr, register, floatMode);
+        }
+        else
+        {
+            a += visit(functionCall);
+
+            switch (functionCall.getReturnType())
+            {
+                case Tokenizer.TYPE_INT:
+                a += "\tmov " + register + ", " + INT_EXPR_REGISTER + "\n";
+                break;
+
+                case Tokenizer.TYPE_FLOAT:
+                if (floatMode)
+                {
+                    a += "\tmovss " + register + ", " + FLOAT_EXPR_REGISTER + "\n";
+                    break;
+                }
+                
+                throw new CompileException("Float value cannot be used for int number expression");
+
+                case Tokenizer.TYPE_CHAR:
+                a += "\tmov " + register + ", " + CHAR_EXPR_REGISTER + "\n";
+            }
         }
 
         if (factor.isNegative()) 
