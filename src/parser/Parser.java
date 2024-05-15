@@ -801,7 +801,20 @@ public class Parser
      {
         if (peek() != null)
         {
-            if (peek().getType() == TokenType.LITERAL_STR)
+            if (peek().getType() == TokenType.IDENTIFIER &&
+                peek(1).getType() == TokenType.OPEN_PAREN)
+            {
+                FunctionCall function = parseFunctionCall(false);
+                String returnType = function.getReturnType();
+
+                if (!returnType.equals(Tokenizer.TYPE_STRING))
+                {
+                    throw new ParseException("Invalid return type " + returnType + " for str expression");
+                }
+
+                return new StringExpression(function);
+            }
+            else if (peek().getType() == TokenType.LITERAL_STR)
             {
                 Token temp = consume();
                 litTable.addLiteralWithType(temp.getValue(), Tokenizer.TYPE_STRING);

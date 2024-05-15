@@ -396,18 +396,26 @@ public class AssemblyGenerator implements AssemblyVisitor {
     public String visit(StringExpression expr, String register) throws CompileException 
     {
         String a = "";
-        switch (expr.getToken().getType()) 
+        if (expr.getFunctionCall() != null)
         {
-            case LITERAL_STR:
-            a += handleStringLiteral(expr, register);
-            break;
+            a += visit(expr.getFunctionCall());
+            a += "\tmov " + register + ", " + STR_EXPR_REGISTER + "\n";
+        }
+        else
+        {
+            switch (expr.getToken().getType()) 
+            {
+                case LITERAL_STR:
+                a += handleStringLiteral(expr, register);
+                break;
 
-            case IDENTIFIER:
-            a += handleIdentifier(expr, register);
-            break;
+                case IDENTIFIER:
+                a += handleIdentifier(expr, register);
+                break;
 
-            default:
-            throw new CompileException("Could not compile this string expression");
+                default:
+                throw new CompileException("Could not compile this string expression");
+            }
         }
 
         return a;

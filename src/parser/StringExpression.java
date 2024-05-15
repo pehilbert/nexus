@@ -2,21 +2,35 @@ package parser;
 
 import tokenizer.Token;
 import tokenizer.TokenType;
+
 import codegen.AssemblyGenerator;
 import codegen.AssemblyVisitor;
 import codegen.CompileException;
 
 public class StringExpression implements Expression {
     private Token token;
+    private FunctionCall functionCall;
 
     public StringExpression(Token inToken)
     {
         token = inToken;
+        functionCall = null;
+    }
+
+    public StringExpression(FunctionCall function)
+    {
+        functionCall = function;
+        token = null;
     }
 
     public Token getToken()
     {
         return token;
+    }
+
+    public FunctionCall getFunctionCall()
+    {
+        return functionCall;
     }
 
     public String accept(AssemblyVisitor visitor) throws CompileException
@@ -31,11 +45,16 @@ public class StringExpression implements Expression {
 
     public String toString()
     {
-        if (token.getType() == TokenType.LITERAL_STR)
+        if (token != null)
         {
-            return "\"" + token.getValue() + "\"";
+            if (token.getType() == TokenType.LITERAL_STR)
+            {
+                return "\"" + token.getValue() + "\"";
+            }
+
+            return token.getValue();
         }
 
-        return token.getValue();
+        return functionCall.toString();
     }
 }
