@@ -26,7 +26,7 @@ public class StringExpression implements Expression {
 
     public String asmRegister()
     {
-        return "ebx";
+        return "eax";
     }
 
     public String toString()

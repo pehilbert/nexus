@@ -3,6 +3,7 @@ package codegen;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
@@ -12,7 +13,11 @@ import parser.*;
 public class AssemblyGenerator implements AssemblyVisitor {
     private Parser parser;
     private TableStack tableStack;
+    private FunctionTableStack fTableStack;
     private Map<String, Integer> typeSizes;
+    private Integer funcLabelCount;
+
+    static final String MAIN_FUNC_NAME = "main";
 
     static final String STR_SIZE_MD = "strSize";
     static final String PTR_DATA = "pd";
@@ -29,7 +34,9 @@ public class AssemblyGenerator implements AssemblyVisitor {
     {
         parser = inParser;
         tableStack = new TableStack();
+        fTableStack = new FunctionTableStack();
         typeSizes = new HashMap<String, Integer>();
+        funcLabelCount = 0;
         
         // fill out type size table
         typeSizes.put(Tokenizer.TYPE_INT, INT_SIZE);
@@ -70,7 +77,6 @@ public class AssemblyGenerator implements AssemblyVisitor {
 
         a += "section .text\n";
         a += "global _start\n\n";
-        a += "_start:\n";
 
         return a;
     }
@@ -92,7 +98,9 @@ public class AssemblyGenerator implements AssemblyVisitor {
             switch (type)
             {
                 case Tokenizer.TYPE_STRING:
-                a += label + " db " + stringToAsmLiteral(current) + "\n";
+                a += label + ":\n";
+                a += " dd " + current.length() + "\n";
+                a += " db " + stringToAsmLiteral(current) + "\n";
                 break;
 
                 case Tokenizer.TYPE_FLOAT:
@@ -122,6 +130,7 @@ public class AssemblyGenerator implements AssemblyVisitor {
         SymbolTable scopeTable = new SymbolTable();
 
         tableStack.push(scopeTable);
+        fTableStack.pushEmptyTable();
         
         Iterator<Statement> i = stmt.getIterator();
         String a = "";
@@ -138,6 +147,7 @@ public class AssemblyGenerator implements AssemblyVisitor {
         }
 
         tableStack.pop();
+        fTableStack.pop();
 
         // move the stack pointer back down to the base, where the old
         // base pointer is stored
@@ -146,22 +156,137 @@ public class AssemblyGenerator implements AssemblyVisitor {
         // pop the old base pointer off the stack
         a += "\tpop ebp\n";
 
+        // if scope is for a function, add a safety return command
+        if (stmt.getFunctionName() != null)
+        {
+            a += "\tret\n";
+        }
+
         return a;
     }
 
     public String visit(FunctionDeclaration stmt) throws CompileException
     {
+        String funcName = stmt.getName();
+        FunctionDeclaration function = fTableStack.getFunctionDeclaration(funcName);
+
+        // check if this function does not yet have an entry in function table
+        if (function == null)
+        {
+            // if so, create one, including a label
+            if (stmt.getName().equals(MAIN_FUNC_NAME))
+            {
+                stmt.setLabel("_start");
+            }
+            else
+            {
+                String newLabel = "func" + funcLabelCount.toString();
+                stmt.setLabel(newLabel);
+                funcLabelCount++;
+            }
+
+            fTableStack.peek().put(funcName, stmt);
+        }
+
+        // if there is a body for this declaration, generate the code for it
+        if (stmt.getScope() != null)
+        {
+            // make sure there isn't already a body for this function
+            if (function != null && function.getScope() != null)
+            {
+                throw new CompileException("Attempt to redefine function '" + funcName + "'");
+            }
+
+            // update our version of the function
+            function = fTableStack.getFunctionDeclaration(funcName);
+
+            // add our scope to it and put it back
+            function.setScope(stmt.getScope());
+
+            // make sure there is a label
+            if (function.getLabel() == null)
+            {
+                throw new CompileException("Could not find label for function '" + funcName + "'");
+            }
+
+            // push parameter symbol table
+            tableStack.push(getParamSymbolTable(stmt));
+
+            String a = "";
+
+            // put label
+            a += function.getLabel() + ":\n";
+
+            // generate code for scope
+            a += function.getScope().accept(this);
+
+            // pop parameter symbol table
+            tableStack.pop();
+
+            return a;
+        }
+
         return "";
     }
 
     public String visit(FunctionCall stmt) throws CompileException
     {
-        return "";
+        // look up function, ensure it exists, get the label for it
+        FunctionDeclaration function = fTableStack.getFunctionDeclaration(stmt.getName());
+        Integer cleanupOffset = getParamSymbolTable(function).getStackSize() - PTR_SIZE;
+        List<Parameter> params;
+        List<Expression> args = stmt.getArgs();
+
+        String a = "";
+
+        if (function == null)
+        {
+            throw new CompileException("Function '" + stmt.getName() + "' not defined");
+        }
+
+        params = function.getParams();
+
+        // check for argument count mismatch
+        if (params.size() != args.size()) 
+        {
+            throw new CompileException("Argument count mismatch for function '" + stmt.getName() + "'");
+        }
+
+        // push arguments onto the stack in reverse order
+        for (int i = args.size() - 1; i >= 0; i--)
+        {
+            a += pushExpression(args.get(i), params.get(i).getType());
+        }
+
+        // call function by its label
+        if (function.getLabel() == null)
+        {
+            throw new CompileException("Label not found for function " + function.getName());
+        }
+
+        a += "\tcall " + function.getLabel() + "\n";
+
+        // clean up stack
+        a += "\tadd esp, " + cleanupOffset.toString() + "\n";
+
+        return a;
     }
 
     public String visit(ReturnStatement stmt) throws CompileException
     {
-        return "";
+        String a = "";
+
+        // put the value of the expression in its default register
+        a += stmt.getExpression().accept(this);
+
+        // restore stack
+        a += "\tmov esp, ebp\n";
+        a += "\tpop ebp\n";
+
+        // return
+        a += "\tret\n";
+
+        return a;
     }
 
     public String visit(Declaration stmt) throws CompileException
@@ -170,7 +295,6 @@ public class AssemblyGenerator implements AssemblyVisitor {
         String type = stmt.getType().getValue();
         String identifier = stmt.getIdentifier().getValue();
         Expression expr = stmt.getExpression();
-        String register = expr.asmRegister();
         Integer dataSize = typeSizes.get(type);
 
         if (dataSize == null)
@@ -178,23 +302,7 @@ public class AssemblyGenerator implements AssemblyVisitor {
             throw new CompileException("Unknown size of type " + stmt.getType().getValue());
         }
 
-        // evaluate the expression, and hold the result in the asmRegister
-        a += expr.accept(this);
-
-        // push result onto the stack
-        a += "\tsub esp, " + dataSize.toString() + "\n";
-        
-        // make sure to use the correct move instruction for the register
-        if (register.startsWith("xmm"))
-        {
-            a += "\tmovss ";
-        }
-        else
-        {
-            a += "\tmov ";
-        }
-
-        a += "[esp], " + register + "\n";
+        a += pushExpression(expr, type);
 
         // add to symbol table
         if (!tableStack.identifierInUse(identifier))
@@ -206,11 +314,6 @@ public class AssemblyGenerator implements AssemblyVisitor {
             throw new CompileException("Identifier " + identifier + " already in use");
         }
 
-        if (type.equals(Tokenizer.TYPE_STRING))
-        {
-            updateStringLength(identifier, (StringExpression)stmt.getExpression());
-        }
-
         return a;
     }
 
@@ -219,16 +322,11 @@ public class AssemblyGenerator implements AssemblyVisitor {
         String a = "";
         Expression expr = stmt.getExpression();
         String identifier = stmt.getIdentifier().getValue();
-        VarInfo info = tableStack.getVarInfo(identifier);
-        String type;
-        Integer offset;
+        Integer offset = tableStack.getOffset(identifier);
         String register = expr.asmRegister();
 
-        if (info != null)
+        if (offset != -1)
         {
-            type = info.getType();
-            offset = info.getOffset();
-
             // evaluate the expression and hold the result in the asmRegister of expression
             a += expr.accept(this);
 
@@ -244,60 +342,28 @@ public class AssemblyGenerator implements AssemblyVisitor {
 
             // update the memory location in the stack
             a += "[ebp + " + offset.toString() + "], " + register + "\n";
-
-            if (type.equals(Tokenizer.TYPE_STRING))
-            {
-                updateStringLength(identifier, (StringExpression)stmt.getExpression());
-            }
             
             return a;
         }
-
-        return a;
+        else
+        {
+            throw new CompileException("Unknown identifier: " + identifier);
+        }
     }
 
     public String visit(PrintStatement stmt) throws CompileException 
     {
         StringExpression expr = stmt.getExpression();
-        Token exprToken = expr.getToken();
-        String dataLen;
-        VarInfo info;
 
         String a = "";
 
         a += "\tmov eax, 4\n";
         a += "\tmov ebx, 1\n";
+        a += visit(expr, "ecx");
+        a += "\tmov edx, [ecx]\n";
+        a += "\tadd ecx, 4\n";
+        a += "\tint 0x80\n";
 
-        switch (exprToken.getType())
-        {
-            case LITERAL_STR:
-            String str = exprToken.getValue();
-            dataLen = Integer.toString(str.length() + 1);
-
-            a += "\tmov edx, " + dataLen + "\n";
-            a += handleStringLiteral(expr, "ecx");
-            a += "\tint 0x80\n";
-            break;
-
-            case IDENTIFIER:
-            info = tableStack.getVarInfo(exprToken.getValue());
-
-            if (info == null)
-            {
-                throw new CompileException("Unknown identifier: " + exprToken.getValue());
-            }
-
-            dataLen = info.getMetaData(STR_SIZE_MD);
-
-            a += "\tmov edx, " + dataLen + "\n";
-            a += handleIdentifier(expr, "ecx");
-            a += "\tint 0x80\n";
-            break;
-
-            default:
-            throw new CompileException("'print' not supported for token: '" + exprToken.getValue() + "'");
-        }
-        
         return a;
     }
 
@@ -307,7 +373,7 @@ public class AssemblyGenerator implements AssemblyVisitor {
 
         a += "\tmov eax, 1\n";
         a += visit(stmt.getExpression(), "ebx", false);
-        a += "\tint 0x80\n\n";
+        a += "\tint 0x80\n";
 
         return a;
     }
@@ -427,6 +493,68 @@ public class AssemblyGenerator implements AssemblyVisitor {
         }
 
         return a;
+    }
+
+    /*
+     GENERAL HELPER FUNCTIONS 
+    */
+    private String pushExpression(Expression expr, String type) throws CompileException
+    {
+        String a = "";
+        String register = expr.asmRegister();
+        Integer dataSize = typeSizes.get(type);
+
+        if (dataSize == null)
+        {
+            throw new CompileException("Unknown size of type " + type);
+        }
+
+        // evaluate the expression, and hold the result in the asmRegister
+        a += expr.accept(this);
+
+        // push result onto the stack
+        a += "\tsub esp, " + dataSize.toString() + "\n";
+        
+        // make sure to use the correct move instruction for the register
+        if (register.startsWith("xmm"))
+        {
+            a += "\tmovss ";
+        }
+        else
+        {
+            a += "\tmov ";
+        }
+
+        a += "[esp], " + register + "\n";
+
+        return a;
+    }
+
+    /*
+     FUNCTION HELPER FUNCTIONS 
+    */
+    private SymbolTable getParamSymbolTable(FunctionDeclaration function) throws CompileException
+    {
+        SymbolTable newTable = new SymbolTable();
+        List<Parameter> params = function.getParams();
+
+        for (int i = params.size() - 1; i >= 0; i--)
+        {
+            Parameter current = params.get(i);
+            Integer dataSize = typeSizes.get(current.getType());
+
+            if (dataSize == null)
+            {
+                throw new CompileException("Unknown size of type " + current.getType());
+            }
+
+            newTable.addIdentifier(current.getType(), current.getIdentifier(), dataSize);
+        }
+
+        // add placeholder for return address
+        newTable.addIdentifier("-", "-", PTR_SIZE);
+
+        return newTable;
     }
 
     /*
@@ -680,29 +808,6 @@ public class AssemblyGenerator implements AssemblyVisitor {
     /*
      STRING EXPRESSION HELPER FUNCTIONS
     */
-    private void updateStringLength(String identifier, StringExpression expr) throws CompileException
-    {
-        VarInfo info = tableStack.getVarInfo(identifier);
-
-        if (info == null)
-        {
-            throw new CompileException("Unknown identifier: " + identifier);
-        }
-
-        switch (expr.getToken().getType())
-        {
-            case LITERAL_STR:
-            info.updateMetaData(STR_SIZE_MD, Integer.toString(expr.getToken().getValue().length()));
-            break;
-
-            case IDENTIFIER:
-            info.updateMetaData(STR_SIZE_MD, tableStack.getVarInfo(identifier).getMetaData(STR_SIZE_MD));
-            break;
-
-            default:
-            throw new CompileException("Could not update string length of " + identifier);
-        }
-    }
 
     // Loads the memory location of a string literal into a given register
     private String handleStringLiteral(StringExpression expr, String register) throws CompileException 

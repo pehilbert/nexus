@@ -11,6 +11,11 @@ public class ReturnStatement implements Statement {
         expression = expr;
     }
 
+    public Expression getExpression()
+    {
+        return expression;
+    }
+
     public void printStatement()
     {
         System.out.println("Return statement: " + expression.toString());

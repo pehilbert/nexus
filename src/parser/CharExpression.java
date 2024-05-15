@@ -18,7 +18,7 @@ public class CharExpression implements Expression {
 
     public String asmRegister()
     {
-        return "bl";
+        return "al";
     }
 
     public String toString()

@@ -13,6 +13,7 @@ public class FunctionDeclaration implements Statement
     private List<Parameter> params;
     private String returnType;
     private Scope funcScope;
+    private String label;
 
     public FunctionDeclaration(String inName, String inType)
     {
@@ -20,6 +21,7 @@ public class FunctionDeclaration implements Statement
         returnType = inType;
         params = new ArrayList<Parameter>();
         funcScope = null;
+        label = null;
     }
 
     public String getName()
@@ -42,6 +44,11 @@ public class FunctionDeclaration implements Statement
         return funcScope;
     }
 
+    public String getLabel()
+    {
+        return label;
+    }
+
     public void addParam(Parameter param)
     {
         params.add(param);
@@ -50,6 +57,11 @@ public class FunctionDeclaration implements Statement
     public void setScope(Scope inScope)
     {
         funcScope = inScope;
+    }
+
+    public void setLabel(String newLabel)
+    {
+        label = newLabel;
     }
 
     public boolean equals(FunctionDeclaration other)

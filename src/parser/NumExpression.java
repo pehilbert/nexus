@@ -58,7 +58,7 @@ public class NumExpression implements Expression
             return "xmm0";
         }
 
-        return "ebx";
+        return "eax";
     }
 
     public String accept(AssemblyVisitor visitor) throws CompileException
