@@ -472,6 +472,8 @@ public class Parser
      private FunctionCall parseFunctionCall(boolean standalone) throws ParseException
      {
         String name;
+        String returnType;
+        FunctionDeclaration function;
         FunctionCall newCall;
 
         if (peek() != null)
@@ -480,11 +482,20 @@ public class Parser
             {
                 name = consume().getValue();
 
+                function = fTableStack.getFunctionDeclaration(name);
+
+                if (function == null)
+                {
+                    throw new ParseException("Unknown function: " + name, peek());
+                }
+
+                returnType = function.getReturnType();
+
                 if (peek().getType() == TokenType.OPEN_PAREN)
                 {
                     // consume open paren and create new function call
                     consume();
-                    newCall = new FunctionCall(name);
+                    newCall = new FunctionCall(name, returnType);
 
                     // add the arguments to it
                     parseArguments(newCall);
@@ -706,6 +717,7 @@ public class Parser
      private NumFactor parseNumFactor() throws ParseException
      {
         NumFactor newFactor;
+        FunctionCall function;
         boolean negative = false;
 
         if (peek() != null)
@@ -716,7 +728,22 @@ public class Parser
                 consume();
             }
 
-            if (peek().getType() == TokenType.LITERAL_INT ||
+            if (peek().getType() == TokenType.IDENTIFIER &&
+                peek(1).getType() == TokenType.OPEN_PAREN)
+            {
+                function = parseFunctionCall(false);
+                String returnType = function.getReturnType();
+
+                if (!returnType.equals(Tokenizer.TYPE_INT) &&
+                    !returnType.equals(Tokenizer.TYPE_FLOAT) &&
+                    !returnType.equals(Tokenizer.TYPE_CHAR))
+                {
+                    throw new ParseException("Invalid return type " + returnType + " for number expression");
+                }
+
+                return new NumFactor(function, negative);
+            }
+            else if (peek().getType() == TokenType.LITERAL_INT ||
                 peek().getType() == TokenType.LITERAL_FLOAT ||
                 peek().getType() == TokenType.IDENTIFIER ||
                 peek().getType() == TokenType.LITERAL_CHAR)

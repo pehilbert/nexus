@@ -14,10 +14,10 @@
 
 <num_expression> ::= <num_term> | <num_expression> ('+' | '-') <num_expression>
 <num_term> ::= <num_factor> | <num_term> ('*' | '/' | '%') <num_term>
-<num_factor> ::= <num_literal> | <char_literal> | <identifier> | '(' <num_expression> ')'
+<num_factor> ::= <num_literal> | <char_literal> | <identifier> | | <function_call> | '(' <num_expression> ')'
 
 <char_expression> ::= <num_expression>
-<str_expression> ::= <str_literal> | <identifier>
+<str_expression> ::= <str_literal> | <identifier> | <function_call>
 
 <num_literal> ::= [0-9]+
 <char_literal> ::= '*'

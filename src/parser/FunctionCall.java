@@ -7,13 +7,20 @@ import codegen.AssemblyVisitor;
 import codegen.CompileException;
 
 public class FunctionCall implements Statement {
+    private String returnType;
     private String name;
     private List<Expression> args;
 
-    public FunctionCall(String inName)
+    public FunctionCall(String inName, String inReturnType)
     {
+        returnType = inReturnType;
         name = inName;
         args = new ArrayList<Expression>();
+    }
+
+    public String getReturnType()
+    {
+        return returnType;
     }
 
     public String getName()
@@ -31,22 +38,31 @@ public class FunctionCall implements Statement {
         args.add(arg);
     }
 
-    public void printStatement()
+    public String toString()
     {
-        System.out.println("Function call: " + name);
-        System.out.println("Arguments:");
+        String s = "";
+
+        s += "Function call: " + name + "\n";
+        s += "Arguments:\n";
 
         if (args.size() == 0)
         {
-            System.out.println("none");
+            s += "none\n";
         }
         else
         {
             for (int i = 0; i < args.size(); i++)
             {
-                System.out.println(args.get(i).toString());
+                s += args.get(i).toString() + "\n";
             }
         }
+
+        return s;
+    }
+
+    public void printStatement()
+    {
+        System.out.print(this.toString());
     }
 
     public String accept(AssemblyVisitor visitor) throws CompileException
